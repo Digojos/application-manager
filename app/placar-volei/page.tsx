@@ -78,9 +78,12 @@ interface SetHistoryEntry {
 type Action =
   | { type: "ADD_POINT"; team: "A" | "B" }
   | { type: "REMOVE_POINT"; team: "A" | "B" }
+  | { type: "SWAP_POINT"; from: "A" | "B" }
+  | { type: "FINISH_SET" }
   | { type: "RESET" }
   | { type: "SET_NAME"; team: "A" | "B"; name: string }
-  | { type: "SET_CONFIG"; config: MatchConfig };
+  | { type: "SET_CONFIG"; config: MatchConfig }
+  | { type: "FINISH_SET" };
 
 function normalizeConfig(config: MatchConfig): MatchConfig {
   const sanitizedSets = Math.max(1, Math.min(9, config.totalSets));
@@ -157,44 +160,48 @@ function gameReducer(state: GameState, action: Action): GameState {
   if (action.type === "ADD_POINT") {
     if (state.winner) return state;
 
-    const setsToWin = Math.ceil(state.config.totalSets / 2);
     const nextA =
       action.team === "A" ? { ...state.teamA, points: state.teamA.points + 1 } : { ...state.teamA };
     const nextB =
       action.team === "B" ? { ...state.teamB, points: state.teamB.points + 1 } : { ...state.teamB };
 
-    const target = getSetTarget(state.currentSet, state.config);
-    const diff = Math.abs(nextA.points - nextB.points);
-    const reachedTarget = nextA.points >= target || nextB.points >= target;
-    const hasMinAdvantage = diff >= state.config.minAdvantage;
-    const setWinner: "A" | "B" | null =
-      reachedTarget && hasMinAdvantage ? (nextA.points > nextB.points ? "A" : "B") : null;
-
-    if (setWinner) {
-      const setWinnerName = setWinner === "A" ? nextA.name : nextB.name;
-      const historyEntry: SetHistoryEntry = {
-        setNumber: state.currentSet + 1,
-        teamAName: nextA.name,
-        teamBName: nextB.name,
-        teamAScore: nextA.points,
-        teamBScore: nextB.points,
-        winnerName: setWinnerName,
-      };
-      const updatedA = { ...nextA, points: 0, sets: nextA.sets + (setWinner === "A" ? 1 : 0) };
-      const updatedB = { ...nextB, points: 0, sets: nextB.sets + (setWinner === "B" ? 1 : 0) };
-      const matchWinner = resolveMatchWinner(updatedA, updatedB, setsToWin, setWinner);
-
-      return {
-        ...state,
-        teamA: updatedA,
-        teamB: updatedB,
-        currentSet: matchWinner ? state.currentSet : Math.min(state.currentSet + 1, state.config.totalSets - 1),
-        history: [historyEntry, ...state.history],
-        winner: matchWinner,
-      };
-    }
-
     return { ...state, teamA: nextA, teamB: nextB };
+  }
+
+  if (action.type === "FINISH_SET") {
+    if (state.winner) return state;
+
+    const target = getSetTarget(state.currentSet, state.config);
+    const setsToWin = Math.ceil(state.config.totalSets / 2);
+    const diffA = state.teamA.points - state.teamB.points;
+    const setWinner: "A" | "B" | null =
+      state.teamA.points >= target && diffA >= state.config.minAdvantage ? "A"
+        : state.teamB.points >= target && -diffA >= state.config.minAdvantage ? "B"
+          : null;
+
+    if (!setWinner) return state;
+
+    const setWinnerName = setWinner === "A" ? state.teamA.name : state.teamB.name;
+    const historyEntry: SetHistoryEntry = {
+      setNumber: state.currentSet + 1,
+      teamAName: state.teamA.name,
+      teamBName: state.teamB.name,
+      teamAScore: state.teamA.points,
+      teamBScore: state.teamB.points,
+      winnerName: setWinnerName,
+    };
+    const updatedA = { ...state.teamA, points: 0, sets: state.teamA.sets + (setWinner === "A" ? 1 : 0) };
+    const updatedB = { ...state.teamB, points: 0, sets: state.teamB.sets + (setWinner === "B" ? 1 : 0) };
+    const matchWinner = resolveMatchWinner(updatedA, updatedB, setsToWin, setWinner);
+
+    return {
+      ...state,
+      teamA: updatedA,
+      teamB: updatedB,
+      currentSet: matchWinner ? state.currentSet : Math.min(state.currentSet + 1, state.config.totalSets - 1),
+      history: [historyEntry, ...state.history],
+      winner: matchWinner,
+    };
   }
 
   if (action.type === "REMOVE_POINT") {
@@ -208,6 +215,20 @@ function gameReducer(state: GameState, action: Action): GameState {
     return { ...state, teamA: nextA, teamB: nextB };
   }
 
+  if (action.type === "SWAP_POINT") {
+    if (state.winner) return state;
+    if (action.from === "A" && state.teamA.points === 0) return state;
+    if (action.from === "B" && state.teamB.points === 0) return state;
+
+    const nextA = action.from === "A"
+      ? { ...state.teamA, points: state.teamA.points - 1 }
+      : { ...state.teamA, points: state.teamA.points + 1 };
+    const nextB = action.from === "B"
+      ? { ...state.teamB, points: state.teamB.points - 1 }
+      : { ...state.teamB, points: state.teamB.points + 1 };
+
+    return { ...state, teamA: nextA, teamB: nextB };
+  }
   return state;
 }
 
@@ -292,6 +313,9 @@ export default function PlacarVolei() {
 
   const setTarget = getSetTarget(currentSet, config);
   const setsToWin = Math.ceil(config.totalSets / 2);
+  const setWonByA = teamA.points >= setTarget && (teamA.points - teamB.points) >= config.minAdvantage;
+  const setWonByB = teamB.points >= setTarget && (teamB.points - teamA.points) >= config.minAdvantage;
+  const currentSetWinner = setWonByA ? teamA.name : setWonByB ? teamB.name : null;
   const setsRemainingA = Math.max(0, setsToWin - teamA.sets);
   const setsRemainingB = Math.max(0, setsToWin - teamB.sets);
   const shellClass = isFullscreen
@@ -332,156 +356,156 @@ export default function PlacarVolei() {
           <div className="mb-4 sm:mb-6 rounded-xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5" style={{ color: "#111827" }}>
             <h2 className="text-sm sm:text-base font-semibold text-gray-800 mb-3">Configuracoes da partida</h2>
             <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
-          <label className="text-xs text-gray-600 flex flex-col gap-1">
-            Total de sets (impar)
-            <select
-              value={config.totalSets}
-              onChange={(e) =>
-                updateConfig({ totalSets: Number(e.target.value) })
-              }
-              className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              {[1, 3, 5, 7, 9].map((setCount) => (
-                <option key={setCount} value={setCount}>
-                  {setCount}
-                </option>
-              ))}
-            </select>
-          </label>
+              <label className="text-xs text-gray-600 flex flex-col gap-1">
+                Total de sets (impar)
+                <select
+                  value={config.totalSets}
+                  onChange={(e) =>
+                    updateConfig({ totalSets: Number(e.target.value) })
+                  }
+                  className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {[1, 3, 5, 7, 9].map((setCount) => (
+                    <option key={setCount} value={setCount}>
+                      {setCount}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-          <label className="text-xs text-gray-600 flex flex-col gap-1">
-            Pontos por set
-            <input
-              type="number"
-              min={1}
-              max={99}
-              value={config.pointsPerSet}
-              onChange={(e) =>
-                updateConfig({ pointsPerSet: Number(e.target.value) })
-              }
-              className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </label>
+              <label className="text-xs text-gray-600 flex flex-col gap-1">
+                Pontos por set
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={config.pointsPerSet}
+                  onChange={(e) =>
+                    updateConfig({ pointsPerSet: Number(e.target.value) })
+                  }
+                  className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </label>
 
-          <label className="text-xs text-gray-600 flex flex-col gap-1">
-            Pontos do tie-break
-            <input
-              type="number"
-              min={1}
-              max={99}
-              value={config.tieBreakPoints}
-              onChange={(e) =>
-                updateConfig({ tieBreakPoints: Number(e.target.value) })
-              }
-              className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              disabled={!config.useTieBreak}
-            />
-          </label>
+              <label className="text-xs text-gray-600 flex flex-col gap-1">
+                Pontos do tie-break
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={config.tieBreakPoints}
+                  onChange={(e) =>
+                    updateConfig({ tieBreakPoints: Number(e.target.value) })
+                  }
+                  className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  disabled={!config.useTieBreak}
+                />
+              </label>
 
-          <label className="text-xs text-gray-600 flex flex-col gap-1">
-            Vantagem minima
-            <input
-              type="number"
-              min={1}
-              max={10}
-              value={config.minAdvantage}
-              onChange={(e) =>
-                updateConfig({ minAdvantage: Number(e.target.value) })
-              }
-              className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </label>
+              <label className="text-xs text-gray-600 flex flex-col gap-1">
+                Vantagem minima
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={config.minAdvantage}
+                  onChange={(e) =>
+                    updateConfig({ minAdvantage: Number(e.target.value) })
+                  }
+                  className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </label>
 
-          <label className="text-xs text-gray-600 flex items-center gap-2 pt-6 lg:pt-0 lg:items-end">
-            <input
-              type="checkbox"
-              checked={config.useTieBreak}
-              onChange={(e) =>
-                updateConfig({ useTieBreak: e.target.checked })
-              }
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            Usar tie-break no ultimo set
-          </label>
-            <label className="text-xs text-gray-600 flex flex-col gap-1">
-              Cor do card
-              <input
-                type="color"
-                value={safeTheme.cardBackgroundColor}
-                onChange={(e) =>
-                  setTheme((prev) => normalizeTheme({ ...prev, cardBackgroundColor: e.target.value }))
-                }
-                className="h-10 w-full rounded-lg border border-gray-300 bg-white p-1"
-              />
-            </label>
+              <label className="text-xs text-gray-600 flex items-center gap-2 pt-6 lg:pt-0 lg:items-end">
+                <input
+                  type="checkbox"
+                  checked={config.useTieBreak}
+                  onChange={(e) =>
+                    updateConfig({ useTieBreak: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                Usar tie-break no ultimo set
+              </label>
+              <label className="text-xs text-gray-600 flex flex-col gap-1">
+                Cor do card
+                <input
+                  type="color"
+                  value={safeTheme.cardBackgroundColor}
+                  onChange={(e) =>
+                    setTheme((prev) => normalizeTheme({ ...prev, cardBackgroundColor: e.target.value }))
+                  }
+                  className="h-10 w-full rounded-lg border border-gray-300 bg-white p-1"
+                />
+              </label>
 
-            <label className="text-xs text-gray-600 flex flex-col gap-1">
-              Cor da fonte do card
-              <input
-                type="color"
-                value={safeTheme.cardFontColor}
-                onChange={(e) =>
-                  setTheme((prev) => normalizeTheme({ ...prev, cardFontColor: e.target.value }))
-                }
-                className="h-10 w-full rounded-lg border border-gray-300 bg-white p-1"
-              />
-            </label>
+              <label className="text-xs text-gray-600 flex flex-col gap-1">
+                Cor da fonte do card
+                <input
+                  type="color"
+                  value={safeTheme.cardFontColor}
+                  onChange={(e) =>
+                    setTheme((prev) => normalizeTheme({ ...prev, cardFontColor: e.target.value }))
+                  }
+                  className="h-10 w-full rounded-lg border border-gray-300 bg-white p-1"
+                />
+              </label>
 
-            <label className="text-xs text-gray-600 flex flex-col gap-1">
-              Fonte nome ({TEAM_NAME_SIZE_MIN}-{TEAM_NAME_SIZE_MAX}px)
-              <input
-                type="number"
-                min={TEAM_NAME_SIZE_MIN}
-                max={TEAM_NAME_SIZE_MAX}
-                value={safeTheme.teamNameSize}
-                onChange={(e) => updateTeamNameSize(e.target.value)}
-                className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </label>
+              <label className="text-xs text-gray-600 flex flex-col gap-1">
+                Fonte nome ({TEAM_NAME_SIZE_MIN}-{TEAM_NAME_SIZE_MAX}px)
+                <input
+                  type="number"
+                  min={TEAM_NAME_SIZE_MIN}
+                  max={TEAM_NAME_SIZE_MAX}
+                  value={safeTheme.teamNameSize}
+                  onChange={(e) => updateTeamNameSize(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </label>
 
-            <label className="text-xs text-gray-600 flex flex-col gap-1">
-              Fonte placar ({SCORE_SIZE_MIN}-{SCORE_SIZE_MAX}px)
-              <input
-                type="number"
-                min={SCORE_SIZE_MIN}
-                max={SCORE_SIZE_MAX}
-                value={safeTheme.scoreSize}
-                onChange={(e) => updateScoreSize(e.target.value)}
-                className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </label>
+              <label className="text-xs text-gray-600 flex flex-col gap-1">
+                Fonte placar ({SCORE_SIZE_MIN}-{SCORE_SIZE_MAX}px)
+                <input
+                  type="number"
+                  min={SCORE_SIZE_MIN}
+                  max={SCORE_SIZE_MAX}
+                  value={safeTheme.scoreSize}
+                  onChange={(e) => updateScoreSize(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </label>
+            </div>
+
+            <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
+              <p className="font-semibold">Como os sets sao gerenciados</p>
+              <p className="mt-1">
+                Ao atingir {setTarget} pontos com vantagem minima de {config.minAdvantage}, o botao "Finalizar set" aparece abaixo do placar.
+                Clique nele para registrar o resultado no historico e iniciar o proximo set.
+              </p>
+              <p className="mt-1">
+                Em melhor de {config.totalSets}, vence quem fizer {setsToWin} sets. Falta(m): {setsRemainingA} para {teamA.name} e {setsRemainingB} para {teamB.name}.
+              </p>
+              <p className="mt-1">O placar final de cada set fica registrado no historico abaixo.</p>
+              <p className="mt-1 font-medium">As alteracoes acima sao aplicadas imediatamente.</p>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={restoreDefaultSettings}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Restaurar padrao
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme(DEFAULT_THEME)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Restaurar cores
+              </button>
+            </div>
           </div>
-
-          <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
-            <p className="font-semibold">Como os sets sao gerenciados</p>
-            <p className="mt-1">
-              O placar controla os sets automaticamente: ao atingir {setTarget} pontos com vantagem minima de {config.minAdvantage},
-              o set e fechado e os pontos voltam para 0 para iniciar o proximo set.
-            </p>
-            <p className="mt-1">
-              Em melhor de {config.totalSets}, vence quem fizer {setsToWin} sets. Falta(m): {setsRemainingA} para {teamA.name} e {setsRemainingB} para {teamB.name}.
-            </p>
-            <p className="mt-1">O placar final de cada set fica registrado no historico abaixo.</p>
-            <p className="mt-1 font-medium">As alteracoes acima sao aplicadas imediatamente.</p>
-          </div>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={restoreDefaultSettings}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              Restaurar padrao
-            </button>
-            <button
-              type="button"
-              onClick={() => setTheme(DEFAULT_THEME)}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              Restaurar cores
-            </button>
-          </div>
-        </div>
         </>
       )}
 
@@ -560,9 +584,8 @@ export default function PlacarVolei() {
                     {Array.from({ length: setsToWin }).map((_, i) => (
                       <div
                         key={i}
-                        className={`w-4 h-4 rounded-full border-2 ${
-                          i < teamState.sets ? "bg-indigo-500 border-indigo-500" : "border-gray-300"
-                        }`}
+                        className={`w-4 h-4 rounded-full border-2 ${i < teamState.sets ? "bg-indigo-500 border-indigo-500" : "border-gray-300"
+                          }`}
                       />
                     ))}
                   </div>
@@ -582,8 +605,19 @@ export default function PlacarVolei() {
                   -1
                 </button>
                 <button
+                  onClick={() => dispatch({ type: "SWAP_POINT", from: team })}
+                  disabled={!!winner || teamState.points === 0}
+                  aria-label={`Transferir 1 ponto de ${teamState.name} para o outro time`}
+                  title={`Mover ponto de ${teamState.name} para o outro time`}
+                  className={`${pointButtonSizeClass} rounded-lg border border-amber-400 text-amber-600 font-bold hover:bg-amber-50 active:scale-95 disabled:opacity-40 transition-all`}
+                  style={{ color: safeTheme.cardFontColor, borderColor: safeTheme.cardFontColor }}
+                >
+                  ⇄
+                </button>
+
+                <button
                   onClick={() => addPoint(team)}
-                  disabled={!!winner}
+                  disabled={!!winner || setWonByA || setWonByB}
                   aria-label={`Adicionar 1 ponto ao ${teamState.name}`}
                   className={`${pointButtonSizeClass} rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 active:scale-95 disabled:opacity-40 transition-all`}
                 >
@@ -594,6 +628,21 @@ export default function PlacarVolei() {
           );
         })}
       </div>
+
+      {!isFullscreen && currentSetWinner && !winner && (
+        <div className="mb-4 sm:mb-5 rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-indigo-800">
+            {currentSetWinner} venceu o set {currentSet + 1}!
+          </p>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: "FINISH_SET" })}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors shrink-0"
+          >
+            Finalizar set
+          </button>
+        </div>
+      )}
 
       {!isFullscreen && (
         <div className="flex gap-3 mb-4 sm:mb-6">
