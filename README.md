@@ -87,8 +87,42 @@ Acesse [http://localhost:3000](http://localhost:3000).
 | `/` | Home — lista as mini-aplicações ativas | Público |
 | `/login` | Tela de login do admin | Público |
 | `/admin` | Painel de gerenciamento (CRUD de mini-apps) | Autenticado |
-| `/placar-volei` | Mini-app: placar de vôlei | Público |
+| `/placar-volei` | Controle do placar (aceita `?sessionId=<id>`) | Público |
+| `/placar-volei/sessoes` | CRUD de sessões do placar | Público |
+| `/placar-volei/view/[id]` | Tela de visualização (somente leitura) da sessão | Público |
 | `/[...slug]` | Fallback para rotas não implementadas | Público |
+
+## Placar de vôlei por sessão
+
+O placar agora funciona por sessão, separando claramente quem controla de quem apenas visualiza.
+
+### Conceitos
+
+- **Controle**: rota interativa para operar o placar e configurar aparência.
+- **View**: rota somente leitura para TV/telão, sem ações de edição.
+- **Sessão**: unidade persistida no banco com estado do placar, histórico e configurações visuais.
+
+### Fluxo recomendado
+
+1. Criar sessão em `/placar-volei/sessoes`.
+2. Abrir controle em `/placar-volei?sessionId=<id>`.
+3. Compartilhar a view em `/placar-volei/view/<id>` (link ou QR Code).
+
+### Sincronização em tempo real
+
+- A view é atualizada em tempo real via **SSE (Server-Sent Events)**.
+- Toda ação feita no controle é persistida na sessão e publicada no stream da sessão.
+
+### Configurações de exibição (definidas no controle)
+
+As opções abaixo são salvas na sessão e aplicadas na view:
+
+- Cor de fundo e cor da fonte do card.
+- Tamanho da fonte do nome do time.
+- Tamanho da fonte do placar.
+- Exibir/ocultar nome dos times na view.
+- Exibir/ocultar indicadores de sets na view.
+- Exibir/ocultar resumo dos sets na view.
 
 ### API REST
 
@@ -100,6 +134,12 @@ Acesse [http://localhost:3000](http://localhost:3000).
 | `GET` | `/api/admin/miniapps/[id]` | Busca mini-app por ID | Autenticado |
 | `PATCH` | `/api/admin/miniapps/[id]` | Atualiza mini-app | Autenticado |
 | `DELETE` | `/api/admin/miniapps/[id]` | Remove mini-app | Autenticado |
+| `GET` | `/api/scoreboard-sessions` | Lista sessões de placar | Público |
+| `POST` | `/api/scoreboard-sessions` | Cria nova sessão de placar | Público |
+| `GET` | `/api/scoreboard-sessions/[id]` | Busca sessão por ID | Público |
+| `PATCH` | `/api/scoreboard-sessions/[id]` | Aplica ação no placar/config da sessão | Público |
+| `DELETE` | `/api/scoreboard-sessions/[id]` | Exclui sessão | Público |
+| `GET` | `/api/scoreboard-sessions/[id]/stream` | Stream SSE com atualizações da sessão | Público |
 
 ## Estrutura do projeto
 
@@ -114,15 +154,22 @@ application-manager/
 │   ├── api/
 │   │   ├── admin/miniapps/     # Endpoints CRUD admin
 │   │   ├── auth/[...nextauth]/ # Handler do Auth.js
-│   │   └── miniapps/           # Endpoint público
+│   │   ├── miniapps/           # Endpoint público
+│   │   └── scoreboard-sessions/# Endpoints de sessão do placar + stream SSE
 │   ├── login/                  # Tela de login
 │   ├── placar-volei/           # Mini-app: placar de vôlei
+│   │   ├── page.tsx            # Tela de controle
+│   │   ├── sessoes/            # CRUD de sessões
+│   │   └── view/[id]/          # Tela de visualização (somente leitura)
 │   ├── [...slug]/              # Catch-all para rotas não implementadas
 │   ├── layout.tsx              # Layout raiz com header
 │   └── page.tsx                # Home pública
 ├── lib/
 │   ├── miniapps.ts             # Camada de acesso a dados (MiniApp)
 │   ├── prisma.ts               # Singleton do Prisma Client
+│   ├── scoreboard.ts           # Estado/reducer/config do placar
+│   ├── scoreboard-sessions.ts  # CRUD/aplicação de ações da sessão
+│   ├── scoreboard-stream.ts    # Pub/sub em memória para SSE
 │   └── validations.ts          # Schemas Zod
 ├── prisma/
 │   ├── migrations/             # Histórico de migrations
@@ -158,6 +205,18 @@ application-manager/
 | password | VarChar(255) | Senha com hash bcrypt (custo 12) |
 | name | VarChar(100) | Nome exibido no painel |
 | createdAt | DateTime | Data de criação |
+
+**ScoreboardSession** (`scoreboard_sessions`)
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| id | String (PK) | Identificador único da sessão |
+| title | VarChar(120) | Título da sessão |
+| controlToken | String | Token opcional para controle da sessão |
+| state | JSON | Estado completo do placar (times, sets, histórico e display) |
+| archivedAt | DateTime nullable | Data de arquivamento lógico |
+| createdAt | DateTime | Data de criação |
+| updatedAt | DateTime | Data de atualização |
 
 ### Comandos Prisma úteis
 
