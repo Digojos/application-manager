@@ -2,6 +2,14 @@
 
 import { useReducer, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import QRCode from "qrcode";
+import {
+  DEFAULT_SCOREBOARD_THEME,
+  normalizeScoreboardState,
+  normalizeScoreboardTheme,
+  type ThemeConfig,
+} from "@/lib/scoreboard";
 
 const DEFAULT_CONFIG: MatchConfig = {
   totalSets: 3,
@@ -25,20 +33,6 @@ interface MatchConfig {
   useTieBreak: boolean;
 }
 
-interface ThemeConfig {
-  cardBackgroundColor: string;
-  cardFontColor: string;
-  teamNameSize: number;
-  scoreSize: number;
-}
-
-const DEFAULT_THEME: ThemeConfig = {
-  cardBackgroundColor: "#ffffff",
-  cardFontColor: "#111827",
-  teamNameSize: 36,
-  scoreSize: 120,
-};
-
 const TEAM_NAME_SIZE_MIN = 20;
 const TEAM_NAME_SIZE_MAX = 56;
 const SCORE_SIZE_MIN = 64;
@@ -48,19 +42,11 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function normalizeTheme(theme: ThemeConfig): ThemeConfig {
-  return {
-    cardBackgroundColor: theme.cardBackgroundColor,
-    cardFontColor: theme.cardFontColor,
-    teamNameSize: clamp(theme.teamNameSize, TEAM_NAME_SIZE_MIN, TEAM_NAME_SIZE_MAX),
-    scoreSize: clamp(theme.scoreSize, SCORE_SIZE_MIN, SCORE_SIZE_MAX),
-  };
-}
-
 interface GameState {
   teamA: TeamState;
   teamB: TeamState;
   config: MatchConfig;
+  display: ThemeConfig;
   currentSet: number;
   history: SetHistoryEntry[];
   winner: string | null;
@@ -83,7 +69,14 @@ type Action =
   | { type: "RESET" }
   | { type: "SET_NAME"; team: "A" | "B"; name: string }
   | { type: "SET_CONFIG"; config: MatchConfig }
-  | { type: "FINISH_SET" };
+  | { type: "SET_THEME"; display: ThemeConfig }
+  | { type: "HYDRATE"; state: GameState };
+
+interface ScoreboardSessionResponse {
+  id: string;
+  title: string;
+  state: GameState;
+}
 
 function normalizeConfig(config: MatchConfig): MatchConfig {
   const sanitizedSets = Math.max(1, Math.min(9, config.totalSets));
@@ -127,6 +120,7 @@ function initialState(nameA = "Time A", nameB = "Time B", config: MatchConfig = 
     teamA: { name: nameA, points: 0, sets: 0 },
     teamB: { name: nameB, points: 0, sets: 0 },
     config: safeConfig,
+    display: DEFAULT_SCOREBOARD_THEME,
     currentSet: 0,
     history: [],
     winner: null,
@@ -134,6 +128,10 @@ function initialState(nameA = "Time A", nameB = "Time B", config: MatchConfig = 
 }
 
 function gameReducer(state: GameState, action: Action): GameState {
+  if (action.type === "HYDRATE") {
+    return action.state;
+  }
+
   if (action.type === "SET_NAME") {
     if (action.team === "A") return { ...state, teamA: { ...state.teamA, name: action.name } };
     return { ...state, teamB: { ...state.teamB, name: action.name } };
@@ -150,6 +148,13 @@ function gameReducer(state: GameState, action: Action): GameState {
       config: nextConfig,
       currentSet: nextCurrentSet,
       winner: nextWinner,
+    };
+  }
+
+  if (action.type === "SET_THEME") {
+    return {
+      ...state,
+      display: normalizeScoreboardTheme(action.display),
     };
   }
 
@@ -234,13 +239,57 @@ function gameReducer(state: GameState, action: Action): GameState {
 
 export default function PlacarVolei() {
   const pageRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("sessionId");
   const [state, dispatch] = useReducer(gameReducer, undefined, () => initialState());
   const { teamA, teamB, config, currentSet, history, winner } = state;
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [theme, setTheme] = useState<ThemeConfig>(DEFAULT_THEME);
+  const [sessionTitle, setSessionTitle] = useState<string | null>(null);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [isSyncingSession, setIsSyncingSession] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
+  const [isQrOpen, setIsQrOpen] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+  const [qrStatus, setQrStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
 
   const [editingName, setEditingName] = useReducerSafe<"A" | "B" | null>(null);
   const [nameInput, setNameInput] = useReducerSafe("");
+
+  useEffect(() => {
+    if (!sessionId) {
+      setSessionTitle(null);
+      setSessionError(null);
+      return;
+    }
+
+    let active = true;
+
+    const loadSession = async () => {
+      try {
+        const response = await fetch(`/api/scoreboard-sessions/${sessionId}`, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error("Falha ao carregar a sessão");
+        }
+
+        const session = (await response.json()) as ScoreboardSessionResponse;
+        if (!active) return;
+
+        dispatch({ type: "HYDRATE", state: normalizeScoreboardState(session.state) as GameState });
+        setSessionTitle(session.title);
+        setSessionError(null);
+      } catch {
+        if (active) {
+          setSessionError("Não foi possível carregar esta sessão.");
+        }
+      }
+    };
+
+    loadSession();
+
+    return () => {
+      active = false;
+    };
+  }, [sessionId]);
 
   useEffect(() => {
     const syncFullscreen = () => {
@@ -255,20 +304,59 @@ export default function PlacarVolei() {
     };
   }, []);
 
+  const persistSessionAction = useCallback(
+    async (action: Action) => {
+      if (!sessionId || action.type === "HYDRATE") return;
+
+      setIsSyncingSession(true);
+      setSessionError(null);
+
+      try {
+        const response = await fetch(`/api/scoreboard-sessions/${sessionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null);
+          throw new Error(payload?.error ?? "Não foi possível sincronizar a sessão");
+        }
+
+        const session = (await response.json()) as ScoreboardSessionResponse;
+        dispatch({ type: "HYDRATE", state: normalizeScoreboardState(session.state) as GameState });
+        setSessionTitle(session.title);
+      } catch (error) {
+        setSessionError(error instanceof Error ? error.message : "Não foi possível sincronizar a sessão");
+      } finally {
+        setIsSyncingSession(false);
+      }
+    },
+    [sessionId],
+  );
+
+  const applyAction = useCallback(
+    (action: Action) => {
+      dispatch(action);
+      void persistSessionAction(action);
+    },
+    [persistSessionAction],
+  );
+
   const addPoint = useCallback((team: "A" | "B") => {
-    dispatch({ type: "ADD_POINT", team });
-  }, [dispatch]);
+    applyAction({ type: "ADD_POINT", team });
+  }, [applyAction]);
 
   const removePoint = useCallback((team: "A" | "B") => {
-    dispatch({ type: "REMOVE_POINT", team });
-  }, [dispatch]);
+    applyAction({ type: "REMOVE_POINT", team });
+  }, [applyAction]);
 
   const swapPoint = useCallback((team: "A" | "B") => {
-    dispatch({ type: "SWAP_POINT", from: team });
-  }, [dispatch]);
+    applyAction({ type: "SWAP_POINT", from: team });
+  }, [applyAction]);
 
   function reset() {
-    dispatch({ type: "RESET" });
+    applyAction({ type: "RESET" });
   }
 
   function startEditName(team: "A" | "B") {
@@ -279,28 +367,28 @@ export default function PlacarVolei() {
   function saveName() {
     const trimmed = nameInput.trim();
     if (!trimmed || !editingName) return;
-    dispatch({ type: "SET_NAME", team: editingName, name: trimmed });
+    applyAction({ type: "SET_NAME", team: editingName, name: trimmed });
     setEditingName(null);
   }
 
   function restoreDefaultSettings() {
-    dispatch({ type: "SET_CONFIG", config: DEFAULT_CONFIG });
+    applyAction({ type: "SET_CONFIG", config: DEFAULT_CONFIG });
   }
 
   function updateConfig(patch: Partial<MatchConfig>) {
-    dispatch({ type: "SET_CONFIG", config: { ...config, ...patch } });
+    applyAction({ type: "SET_CONFIG", config: { ...config, ...patch } });
   }
 
   function updateTeamNameSize(rawValue: string) {
     const parsed = Number(rawValue);
     if (!Number.isFinite(parsed)) return;
-    setTheme((prev) => normalizeTheme({ ...prev, teamNameSize: parsed }));
+    applyAction({ type: "SET_THEME", display: { ...safeTheme, teamNameSize: parsed } });
   }
 
   function updateScoreSize(rawValue: string) {
     const parsed = Number(rawValue);
     if (!Number.isFinite(parsed)) return;
-    setTheme((prev) => normalizeTheme({ ...prev, scoreSize: parsed }));
+    applyAction({ type: "SET_THEME", display: { ...safeTheme, scoreSize: parsed } });
   }
 
   async function toggleFullscreen() {
@@ -325,10 +413,72 @@ export default function PlacarVolei() {
   const shellClass = isFullscreen
     ? "w-full min-h-screen px-3 py-3 sm:px-6 sm:py-6 flex flex-col"
     : "max-w-6xl mx-auto px-4 py-6";
-  const safeTheme = normalizeTheme(theme);
+  const safeTheme = normalizeScoreboardTheme(state.display);
   const pointsClass = "font-bold tabular-nums leading-none";
   const cardPaddingClass = isFullscreen ? "p-4 sm:p-6 md:p-8" : "p-5 md:p-6";
   const pointButtonSizeClass = isFullscreen ? "h-14 w-14 text-2xl" : "h-10 w-10 text-base";
+  const activeSessionLabel = sessionTitle ?? sessionId;
+
+  const buildViewUrl = useCallback(() => {
+    if (!sessionId) return null;
+    if (typeof window === "undefined") return `/placar-volei/view/${sessionId}`;
+    return `${window.location.origin}/placar-volei/view/${sessionId}`;
+  }, [sessionId]);
+
+  const copyViewUrl = useCallback(async () => {
+    const viewUrl = buildViewUrl();
+    if (!viewUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(viewUrl);
+      setCopyStatus("copied");
+      window.setTimeout(() => setCopyStatus("idle"), 2000);
+    } catch {
+      setCopyStatus("error");
+      window.setTimeout(() => setCopyStatus("idle"), 2500);
+    }
+  }, [buildViewUrl]);
+
+  useEffect(() => {
+    if (!sessionId) {
+      setIsQrOpen(false);
+      setQrCodeDataUrl(null);
+      setQrStatus("idle");
+      return;
+    }
+
+    if (!isQrOpen) return;
+
+    let active = true;
+
+    const generateQrCode = async () => {
+      const viewUrl = buildViewUrl();
+      if (!viewUrl) return;
+
+      setQrStatus("loading");
+      try {
+        const dataUrl = await QRCode.toDataURL(viewUrl, {
+          width: 240,
+          margin: 1,
+          errorCorrectionLevel: "M",
+        });
+
+        if (!active) return;
+        setQrCodeDataUrl(dataUrl);
+        setQrStatus("ready");
+      } catch {
+        if (!active) return;
+        setQrCodeDataUrl(null);
+        setQrStatus("error");
+      }
+    };
+
+    void generateQrCode();
+
+    return () => {
+      active = false;
+    };
+  }, [buildViewUrl, isQrOpen, sessionId]);
 
   useEffect(() => {
   const isTypingTarget = (target: EventTarget | null) => {
@@ -388,8 +538,80 @@ export default function PlacarVolei() {
     <div ref={pageRef} className={shellClass}>
       {!isFullscreen && (
         <>
+          {sessionId && (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold">Sessão ativa</p>
+                  <p className="mt-1 text-xs text-emerald-800">{activeSessionLabel}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link href={`/placar-volei/view/${sessionId}`} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">
+                    Abrir visualização
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={copyViewUrl}
+                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 transition-colors"
+                    title="Copiar URL da visualização"
+                    aria-label="Copiar URL da visualização"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5" aria-hidden="true">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    Copiar URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsQrOpen((prev) => !prev)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 transition-colors"
+                    title="Mostrar QR Code da visualização"
+                    aria-label="Mostrar QR Code da visualização"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5" aria-hidden="true">
+                      <path d="M4 4h6v6H4z" />
+                      <path d="M14 4h6v6h-6z" />
+                      <path d="M4 14h6v6H4z" />
+                      <path d="M16 14v2" />
+                      <path d="M20 14v6" />
+                      <path d="M14 20h2" />
+                      <path d="M18 20h2" />
+                      <path d="M14 16h2" />
+                    </svg>
+                    {isQrOpen ? "Ocultar QR" : "QR Code"}
+                  </button>
+                  <Link href="/placar-volei/sessoes" className="rounded-lg border border-emerald-300 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 transition-colors">
+                    Sessões
+                  </Link>
+                </div>
+              </div>
+              {sessionError && <p className="mt-2 text-xs text-rose-700">{sessionError}</p>}
+              {isSyncingSession && <p className="mt-1 text-xs text-emerald-700">Sincronizando alterações...</p>}
+              {copyStatus === "copied" && <p className="mt-1 text-xs text-emerald-700">URL da visualização copiada.</p>}
+              {copyStatus === "error" && <p className="mt-1 text-xs text-rose-700">Não foi possível copiar automaticamente.</p>}
+              {isQrOpen && (
+                <div className="mt-3 rounded-lg border border-emerald-200 bg-white p-3">
+                  <p className="text-xs font-semibold text-emerald-900">QR Code da visualização</p>
+                  <p className="mt-1 text-xs text-emerald-800">Escaneie para abrir a tela de view desta sessão.</p>
+                  <div className="mt-2 inline-flex min-h-60 min-w-60 items-center justify-center rounded-md border border-emerald-200 bg-white p-2">
+                    {qrStatus === "loading" && <span className="text-xs text-emerald-800">Gerando QR Code...</span>}
+                    {qrStatus === "error" && <span className="text-xs text-rose-700">Não foi possível gerar o QR Code.</span>}
+                    {qrCodeDataUrl && qrStatus === "ready" && (
+                      <img src={qrCodeDataUrl} alt="QR Code da visualização da sessão" className="h-56 w-56" />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {!sessionId && (
+            <div className="mb-4 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm">
+              Use uma sessão compartilhada em <Link href="/placar-volei/sessoes" className="font-semibold text-indigo-600 hover:text-indigo-700">/placar-volei/sessoes</Link> ou abra esta tela com `?sessionId=`.
+            </div>
+          )}
           <div className="mb-4 sm:mb-6 flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-[220px]">
+            <div className="min-w-55">
               <h1 className="text-2xl sm:text-3xl font-bold">Placar de Volei</h1>
               <p className="text-sm mt-1 opacity-80">
                 Set {Math.min(currentSet + 1, config.totalSets)} de {config.totalSets} · primeiro a {setTarget} pontos
@@ -490,9 +712,7 @@ export default function PlacarVolei() {
                 <input
                   type="color"
                   value={safeTheme.cardBackgroundColor}
-                  onChange={(e) =>
-                    setTheme((prev) => normalizeTheme({ ...prev, cardBackgroundColor: e.target.value }))
-                  }
+                  onChange={(e) => applyAction({ type: "SET_THEME", display: { ...safeTheme, cardBackgroundColor: e.target.value } })}
                   className="h-10 w-full rounded-lg border border-gray-300 bg-white p-1"
                 />
               </label>
@@ -502,9 +722,7 @@ export default function PlacarVolei() {
                 <input
                   type="color"
                   value={safeTheme.cardFontColor}
-                  onChange={(e) =>
-                    setTheme((prev) => normalizeTheme({ ...prev, cardFontColor: e.target.value }))
-                  }
+                  onChange={(e) => applyAction({ type: "SET_THEME", display: { ...safeTheme, cardFontColor: e.target.value } })}
                   className="h-10 w-full rounded-lg border border-gray-300 bg-white p-1"
                 />
               </label>
@@ -531,6 +749,36 @@ export default function PlacarVolei() {
                   onChange={(e) => updateScoreSize(e.target.value)}
                   className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+              </label>
+
+              <label className="text-xs text-gray-600 flex items-center gap-2 pt-6 lg:pt-0 lg:items-end">
+                <input
+                  type="checkbox"
+                  checked={safeTheme.showTeamNames}
+                  onChange={(e) => applyAction({ type: "SET_THEME", display: { ...safeTheme, showTeamNames: e.target.checked } })}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                Mostrar nome dos times na view
+              </label>
+
+              <label className="text-xs text-gray-600 flex items-center gap-2 pt-6 lg:pt-0 lg:items-end">
+                <input
+                  type="checkbox"
+                  checked={safeTheme.showSetDots}
+                  onChange={(e) => applyAction({ type: "SET_THEME", display: { ...safeTheme, showSetDots: e.target.checked } })}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                Mostrar info dos sets na view
+              </label>
+
+              <label className="text-xs text-gray-600 flex items-center gap-2 pt-6 lg:pt-0 lg:items-end">
+                <input
+                  type="checkbox"
+                  checked={safeTheme.showSetSummary}
+                  onChange={(e) => applyAction({ type: "SET_THEME", display: { ...safeTheme, showSetSummary: e.target.checked } })}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                Mostrar resumo dos sets na view
               </label>
             </div>
 
@@ -587,7 +835,7 @@ export default function PlacarVolei() {
               </button>
               <button
                 type="button"
-                onClick={() => setTheme(DEFAULT_THEME)}
+                onClick={() => applyAction({ type: "SET_THEME", display: DEFAULT_SCOREBOARD_THEME })}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 Restaurar cores
@@ -666,22 +914,19 @@ export default function PlacarVolei() {
                 </div>
               </div>
 
-              {!isFullscreen && (
-                <>
-                  <div className="flex flex-wrap justify-center gap-1">
-                    {Array.from({ length: setsToWin }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-4 h-4 rounded-full border-2 ${i < teamState.sets ? "bg-indigo-500 border-indigo-500" : "border-gray-300"
-                          }`}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    {teamState.sets} set{teamState.sets !== 1 ? "s" : ""} vencido{teamState.sets !== 1 ? "s" : ""}
-                  </p>
-                </>
-              )}
+              <div className="w-full flex flex-col items-center gap-2">
+                <div className="flex flex-wrap justify-center gap-1">
+                  {Array.from({ length: setsToWin }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-4 h-4 rounded-full border-2 ${i < teamState.sets ? "bg-indigo-500 border-indigo-500" : "border-gray-300"}`}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400">
+                  {teamState.sets} set{teamState.sets !== 1 ? "s" : ""} vencido{teamState.sets !== 1 ? "s" : ""}
+                </p>
+              </div>
 
               <div className="w-full mt-auto pt-6 sm:pt-8 flex items-end justify-center gap-5 sm:gap-6">
                 <button
@@ -724,7 +969,7 @@ export default function PlacarVolei() {
           </p>
           <button
             type="button"
-            onClick={() => dispatch({ type: "FINISH_SET" })}
+            onClick={() => applyAction({ type: "FINISH_SET" })}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors shrink-0"
           >
             Finalizar set

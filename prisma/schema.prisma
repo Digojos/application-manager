@@ -31,3 +31,15 @@ model User {
 
   @@map("users")
 }
+
+model ScoreboardSession {
+  id           String   @id @default(cuid())
+  title        String   @db.VarChar(120)
+  controlToken String   @unique @default(cuid())
+  state        Json
+  archivedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("scoreboard_sessions")
+}
