@@ -255,13 +255,17 @@ export default function PlacarVolei() {
     };
   }, []);
 
-  function addPoint(team: "A" | "B") {
+  const addPoint = useCallback((team: "A" | "B") => {
     dispatch({ type: "ADD_POINT", team });
-  }
+  }, [dispatch]);
 
-  function removePoint(team: "A" | "B") {
+  const removePoint = useCallback((team: "A" | "B") => {
     dispatch({ type: "REMOVE_POINT", team });
-  }
+  }, [dispatch]);
+
+  const swapPoint = useCallback((team: "A" | "B") => {
+    dispatch({ type: "SWAP_POINT", from: team });
+  }, [dispatch]);
 
   function reset() {
     dispatch({ type: "RESET" });
@@ -325,6 +329,60 @@ export default function PlacarVolei() {
   const pointsClass = "font-bold tabular-nums leading-none";
   const cardPaddingClass = isFullscreen ? "p-4 sm:p-6 md:p-8" : "p-5 md:p-6";
   const pointButtonSizeClass = isFullscreen ? "h-14 w-14 text-2xl" : "h-10 w-10 text-base";
+
+  useEffect(() => {
+  const isTypingTarget = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return false;
+    const tag = target.tagName;
+    return (
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      tag === "SELECT" ||
+      target.isContentEditable
+    );
+  };
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (isTypingTarget(event.target)) return;
+
+    const key = event.key.toLowerCase();
+
+    switch (key) {
+      case "e":
+        if (!winner && !setWonByA && !setWonByB) addPoint("A");
+        break;
+      case "w":
+        event.preventDefault();
+        swapPoint("A");
+        break;
+      case "q":
+        event.preventDefault();
+        removePoint("A");
+        break;
+      case "d":
+        event.preventDefault();
+        if (!winner && !setWonByA && !setWonByB) addPoint("B");
+        break;
+      case "s":
+        event.preventDefault();
+        swapPoint("B");
+        break;
+      case "a":
+        event.preventDefault();
+        removePoint("B");
+        break;
+      case "p":
+        event.preventDefault();
+        reset();
+        break;
+      default:
+        break;
+    }
+  };
+
+  window.addEventListener("keydown", onKeyDown);
+  return () => window.removeEventListener("keydown", onKeyDown);
+}, [addPoint, removePoint, swapPoint, winner, setWonByA, setWonByB]);
 
   return (
     <div ref={pageRef} className={shellClass}>
@@ -489,6 +547,36 @@ export default function PlacarVolei() {
               <p className="mt-1 font-medium">As alteracoes acima sao aplicadas imediatamente.</p>
             </div>
 
+            <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-700">
+              <p className="font-semibold text-gray-800">Atalhos de teclado</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-md bg-gray-50 px-3 py-2">
+                  <span className="font-semibold">E</span> - adicionar 1 ponto ao Time A
+                </div>
+                <div className="rounded-md bg-gray-50 px-3 py-2">
+                  <span className="font-semibold">W</span> - mover 1 ponto do Time A para o outro time
+                </div>
+                <div className="rounded-md bg-gray-50 px-3 py-2">
+                  <span className="font-semibold">Q</span> - remover 1 ponto do Time A
+                </div>
+                <div className="rounded-md bg-gray-50 px-3 py-2">
+                  <span className="font-semibold">D</span> - adicionar 1 ponto ao Time B
+                </div>
+                <div className="rounded-md bg-gray-50 px-3 py-2">
+                  <span className="font-semibold">S</span> - mover 1 ponto do Time B para o outro time
+                </div>
+                <div className="rounded-md bg-gray-50 px-3 py-2">
+                  <span className="font-semibold">A</span> - remover 1 ponto do Time B
+                </div>
+                <div className="rounded-md bg-gray-50 px-3 py-2 sm:col-span-2 lg:col-span-1">
+                  <span className="font-semibold">P</span> - reiniciar todos os pontos e sets
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-gray-500">
+                Os atalhos sao ignorados enquanto voce estiver digitando em campos de texto, selecao ou edicao de nomes.
+              </p>
+            </div>
+
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -605,7 +693,7 @@ export default function PlacarVolei() {
                   -1
                 </button>
                 <button
-                  onClick={() => dispatch({ type: "SWAP_POINT", from: team })}
+                  onClick={() => swapPoint(team)}
                   disabled={!!winner || teamState.points === 0}
                   aria-label={`Transferir 1 ponto de ${teamState.name} para o outro time`}
                   title={`Mover ponto de ${teamState.name} para o outro time`}
