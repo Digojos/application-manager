@@ -66,16 +66,23 @@ Credenciais padrão criadas:
 ### 5. Iniciar o servidor de desenvolvimento
 
 ```bash
-npm run dev
+npm run dev:lan
 ```
 
-Acesse [http://localhost:3000](http://localhost:3000).
+Acesse no mesmo computador: [http://localhost:3000](http://localhost:3000).
+
+Para outro dispositivo na mesma rede (celular, TV, notebook), use o IP da sua máquina, por exemplo:
+
+```txt
+http://192.168.0.9:3000
+```
 
 ## Scripts disponíveis
 
 | Script | Descrição |
 |---|---|
 | `npm run dev` | Servidor de desenvolvimento com Turbopack |
+| `npm run dev:lan` | Servidor de desenvolvimento acessível pela rede local |
 | `npm run build` | Build de produção |
 | `npm run start` | Inicia o servidor de produção |
 | `npm run lint` | Executa o ESLint |
