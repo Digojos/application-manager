@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   normalizeScoreboardState,
@@ -150,16 +149,18 @@ export function ViewSessionClient({ sessionId }: ViewSessionClientProps) {
     ? state.config.tieBreakPoints
     : state.config.pointsPerSet;
   const shellClass = isFullscreen
-    ? "w-full min-h-screen px-3 py-3 sm:px-6 sm:py-6 flex flex-col"
+    ? "w-full min-h-screen overflow-hidden px-3 py-3 sm:px-6 sm:py-6 flex flex-col"
     : "min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-800 px-4 py-4 sm:py-6 text-white flex flex-col";
   const cardPaddingClass = isFullscreen ? "p-5 sm:p-6 md:p-8" : "p-6 sm:p-7 md:p-8";
   const scoreClass = isFullscreen
     ? "text-[clamp(6rem,20vw,15rem)]"
     : "text-[clamp(5rem,22vw,14rem)]";
+  const teamNameFontSize = `clamp(1.75rem, 9vw, ${safeTheme.teamNameSize}px)`;
+  const viewScoreFontSize = `clamp(4.5rem, 24vw, ${safeTheme.scoreSize}px)`;
 
   return (
     <div ref={pageRef} className={shellClass}>
-      <div className={`mx-auto flex w-full flex-1 ${isFullscreen ? "max-w-none flex-col gap-3" : "max-w-none flex-col gap-4"}`}>
+      <div className={`mx-auto flex w-full flex-1 ${isFullscreen ? "max-w-none flex-col gap-3 overflow-y-auto" : "max-w-none flex-col gap-4"}`}>
         <div className={`rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur ${isFullscreen ? "hidden sm:block" : ""}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -182,7 +183,7 @@ export function ViewSessionClient({ sessionId }: ViewSessionClientProps) {
           </div>
         </div>
 
-        <div className={`grid gap-4 flex-1 ${isFullscreen ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 lg:grid-cols-2"}`}>
+        <div className="grid flex-1 grid-cols-1 gap-4 landscape:grid-cols-2 lg:grid-cols-2">
           {(["A", "B"] as const).map((team) => {
             const teamState = team === "A" ? state.teamA : state.teamB;
 
@@ -193,10 +194,10 @@ export function ViewSessionClient({ sessionId }: ViewSessionClientProps) {
                 style={{ backgroundColor: safeTheme.cardBackgroundColor, color: safeTheme.cardFontColor }}
               >
                 {safeTheme.showTeamNames && (
-                  <div className="mb-4">
+                  <div className="mb-4 w-full">
                     <h2
-                      className={`font-black ${isFullscreen ? "text-4xl sm:text-5xl" : "text-3xl"}`}
-                      style={{ fontSize: `${safeTheme.teamNameSize}px` }}
+                      className={`wrap-break-word text-center font-black ${isFullscreen ? "text-4xl sm:text-5xl" : "text-3xl"}`}
+                      style={{ fontSize: teamNameFontSize }}
                     >
                       {teamState.name}
                     </h2>
@@ -204,7 +205,7 @@ export function ViewSessionClient({ sessionId }: ViewSessionClientProps) {
                 )}
 
                 <div className={`mt-8 flex flex-1 items-center justify-center ${isFullscreen ? "py-12 sm:py-16" : "py-10"}`}>
-                  <span className={`${scoreClass} font-black tabular-nums leading-none`} style={{ color: safeTheme.cardFontColor, fontSize: `${safeTheme.scoreSize}px` }}>
+                  <span className={`${scoreClass} font-black tabular-nums leading-none`} style={{ color: safeTheme.cardFontColor, fontSize: viewScoreFontSize }}>
                     {teamState.points}
                   </span>
                 </div>
@@ -230,7 +231,7 @@ export function ViewSessionClient({ sessionId }: ViewSessionClientProps) {
         </div>
 
         {safeTheme.showSetSummary && (
-          <div className={`grid gap-4 ${isFullscreen ? "lg:grid-cols-[1.35fr_1fr]" : "lg:grid-cols-[1.35fr_1fr]"}`}>
+          <div className="grid gap-4 landscape:grid-cols-2 lg:grid-cols-[1.35fr_1fr]">
             <div className="rounded-2xl border border-white/10 p-5" style={{ backgroundColor: safeTheme.cardBackgroundColor, color: safeTheme.cardFontColor }}>
               <p className="text-sm uppercase tracking-[0.25em] text-slate-400">Set atual</p>
               <p className="mt-2 text-2xl font-semibold">{Math.min(state.currentSet + 1, state.config.totalSets)} de {state.config.totalSets}</p>

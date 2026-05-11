@@ -417,6 +417,8 @@ export default function PlacarVolei() {
   const pointsClass = "font-bold tabular-nums leading-none";
   const cardPaddingClass = isFullscreen ? "p-4 sm:p-6 md:p-8" : "p-5 md:p-6";
   const pointButtonSizeClass = isFullscreen ? "h-14 w-14 text-2xl" : "h-10 w-10 text-base";
+  const teamNameFontSize = `clamp(${TEAM_NAME_SIZE_MIN}px, 9vw, ${safeTheme.teamNameSize}px)`;
+  const scoreFontSize = `clamp(3.5rem, 24vw, ${safeTheme.scoreSize}px)`;
   const activeSessionLabel = sessionTitle ?? sessionId;
 
   const buildViewUrl = useCallback(() => {
@@ -594,11 +596,11 @@ export default function PlacarVolei() {
                 <div className="mt-3 rounded-lg border border-emerald-200 bg-white p-3">
                   <p className="text-xs font-semibold text-emerald-900">QR Code da visualização</p>
                   <p className="mt-1 text-xs text-emerald-800">Escaneie para abrir a tela de view desta sessão.</p>
-                  <div className="mt-2 inline-flex min-h-60 min-w-60 items-center justify-center rounded-md border border-emerald-200 bg-white p-2">
+                  <div className="mt-2 flex aspect-square w-full max-w-60 items-center justify-center rounded-md border border-emerald-200 bg-white p-2">
                     {qrStatus === "loading" && <span className="text-xs text-emerald-800">Gerando QR Code...</span>}
                     {qrStatus === "error" && <span className="text-xs text-rose-700">Não foi possível gerar o QR Code.</span>}
                     {qrCodeDataUrl && qrStatus === "ready" && (
-                      <img src={qrCodeDataUrl} alt="QR Code da visualização da sessão" className="h-56 w-56" />
+                      <img src={qrCodeDataUrl} alt="QR Code da visualização da sessão" className="h-auto w-full max-w-56" />
                     )}
                   </div>
                 </div>
@@ -610,8 +612,8 @@ export default function PlacarVolei() {
               Use uma sessão compartilhada em <Link href="/placar-volei/sessoes" className="font-semibold text-indigo-600 hover:text-indigo-700">/placar-volei/sessoes</Link> ou abra esta tela com `?sessionId=`.
             </div>
           )}
-          <div className="mb-4 sm:mb-6 flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-55">
+          <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:mb-6 sm:flex-row">
+            <div className="w-full min-w-0 sm:min-w-55">
               <h1 className="text-2xl sm:text-3xl font-bold">Placar de Volei</h1>
               <p className="text-sm mt-1 opacity-80">
                 Set {Math.min(currentSet + 1, config.totalSets)} de {config.totalSets} · primeiro a {setTarget} pontos
@@ -619,7 +621,7 @@ export default function PlacarVolei() {
               </p>
               <p className="text-xs mt-1 opacity-70">Melhor de {config.totalSets} sets (vence quem fizer {setsToWin})</p>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">
               <button
                 type="button"
                 onClick={toggleFullscreen}
@@ -635,7 +637,7 @@ export default function PlacarVolei() {
 
           <div className="mb-4 sm:mb-6 rounded-xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5" style={{ color: "#111827" }}>
             <h2 className="text-sm sm:text-base font-semibold text-gray-800 mb-3">Configuracoes da partida</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               <label className="text-xs text-gray-600 flex flex-col gap-1">
                 Total de sets (impar)
                 <select
@@ -696,7 +698,7 @@ export default function PlacarVolei() {
                 />
               </label>
 
-              <label className="text-xs text-gray-600 flex items-center gap-2 pt-6 lg:pt-0 lg:items-end">
+              <label className="text-xs text-gray-600 flex items-center gap-2 sm:pt-6 xl:pt-0 xl:items-end">
                 <input
                   type="checkbox"
                   checked={config.useTieBreak}
@@ -751,7 +753,7 @@ export default function PlacarVolei() {
                 />
               </label>
 
-              <label className="text-xs text-gray-600 flex items-center gap-2 pt-6 lg:pt-0 lg:items-end">
+              <label className="text-xs text-gray-600 flex items-center gap-2 sm:pt-6 xl:pt-0 xl:items-end">
                 <input
                   type="checkbox"
                   checked={safeTheme.showTeamNames}
@@ -761,7 +763,7 @@ export default function PlacarVolei() {
                 Mostrar nome dos times na view
               </label>
 
-              <label className="text-xs text-gray-600 flex items-center gap-2 pt-6 lg:pt-0 lg:items-end">
+              <label className="text-xs text-gray-600 flex items-center gap-2 sm:pt-6 xl:pt-0 xl:items-end">
                 <input
                   type="checkbox"
                   checked={safeTheme.showSetDots}
@@ -771,7 +773,7 @@ export default function PlacarVolei() {
                 Mostrar info dos sets na view
               </label>
 
-              <label className="text-xs text-gray-600 flex items-center gap-2 pt-6 lg:pt-0 lg:items-end">
+              <label className="text-xs text-gray-600 flex items-center gap-2 sm:pt-6 xl:pt-0 xl:items-end">
                 <input
                   type="checkbox"
                   checked={safeTheme.showSetSummary}
@@ -900,8 +902,8 @@ export default function PlacarVolei() {
               ) : (
                 <button
                   onClick={() => startEditName(team)}
-                  className="text-xl sm:text-2xl font-bold hover:text-indigo-600 transition-colors"
-                  style={{ fontSize: `${safeTheme.teamNameSize}px` }}
+                  className="w-full wrap-break-word text-center text-xl font-bold hover:text-indigo-600 transition-colors sm:text-2xl"
+                  style={{ fontSize: teamNameFontSize }}
                   title="Clique para editar o nome"
                 >
                   {teamState.name}
@@ -909,7 +911,7 @@ export default function PlacarVolei() {
               )}
 
               <div className="w-full flex-1 flex items-center justify-center">
-                <div className={pointsClass} style={{ color: safeTheme.cardFontColor, fontSize: `${safeTheme.scoreSize}px` }}>
+                <div className={pointsClass} style={{ color: safeTheme.cardFontColor, fontSize: scoreFontSize }}>
                   {teamState.points}
                 </div>
               </div>
@@ -928,7 +930,7 @@ export default function PlacarVolei() {
                 </p>
               </div>
 
-              <div className="w-full mt-auto pt-6 sm:pt-8 flex items-end justify-center gap-5 sm:gap-6">
+              <div className="mt-auto flex w-full flex-wrap items-end justify-center gap-3 pt-6 sm:gap-6 sm:pt-8">
                 <button
                   onClick={() => removePoint(team)}
                   disabled={!!winner || teamState.points === 0}
@@ -963,14 +965,14 @@ export default function PlacarVolei() {
       </div>
 
       {!isFullscreen && currentSetWinner && !winner && (
-        <div className="mb-4 sm:mb-5 rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 flex items-center justify-between gap-3">
+        <div className="mb-4 flex flex-col items-start gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-medium text-indigo-800">
             {currentSetWinner} venceu o set {currentSet + 1}!
           </p>
           <button
             type="button"
             onClick={() => applyAction({ type: "FINISH_SET" })}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors shrink-0"
+            className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors shrink-0 sm:w-auto"
           >
             Finalizar set
           </button>
