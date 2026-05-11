@@ -109,6 +109,18 @@ export function ViewSessionClient({ sessionId }: ViewSessionClientProps) {
     }
   }, []);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        void toggleFullscreen();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [toggleFullscreen]);
+
   if (isUnavailable) {
     return (
       <div className="min-h-screen bg-slate-950 px-4 py-8 text-slate-100 flex items-center justify-center">

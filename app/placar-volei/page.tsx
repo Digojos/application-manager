@@ -391,7 +391,7 @@ export default function PlacarVolei() {
     applyAction({ type: "SET_THEME", display: { ...safeTheme, scoreSize: parsed } });
   }
 
-  async function toggleFullscreen() {
+  const toggleFullscreen = useCallback(async () => {
     try {
       if (!document.fullscreenElement) {
         await pageRef.current?.requestFullscreen();
@@ -401,7 +401,7 @@ export default function PlacarVolei() {
     } catch {
       // Ignore unsupported browsers or blocked fullscreen requests.
     }
-  }
+  }, []);
 
   const setTarget = getSetTarget(currentSet, config);
   const setsToWin = Math.ceil(config.totalSets / 2);
@@ -527,6 +527,14 @@ export default function PlacarVolei() {
         event.preventDefault();
         reset();
         break;
+      case "f":
+        event.preventDefault();
+        void toggleFullscreen();
+        break;
+      case "enter":
+        event.preventDefault();
+        if (currentSetWinner && !winner) applyAction({ type: "FINISH_SET" });
+        break;
       default:
         break;
     }
@@ -534,7 +542,7 @@ export default function PlacarVolei() {
 
   window.addEventListener("keydown", onKeyDown);
   return () => window.removeEventListener("keydown", onKeyDown);
-}, [addPoint, removePoint, swapPoint, winner, setWonByA, setWonByB]);
+}, [addPoint, removePoint, swapPoint, applyAction, toggleFullscreen, winner, setWonByA, setWonByB, currentSetWinner]);
 
   return (
     <div ref={pageRef} className={shellClass}>
@@ -820,6 +828,12 @@ export default function PlacarVolei() {
                 </div>
                 <div className="rounded-md bg-gray-50 px-3 py-2 sm:col-span-2 lg:col-span-1">
                   <span className="font-semibold">P</span> - reiniciar todos os pontos e sets
+                </div>
+                <div className="rounded-md bg-gray-50 px-3 py-2">
+                  <span className="font-semibold">F</span> - alternar fullscreen
+                </div>
+                <div className="rounded-md bg-gray-50 px-3 py-2">
+                  <span className="font-semibold">Enter</span> - finalizar set (quando disponível)
                 </div>
               </div>
               <p className="mt-2 text-[11px] text-gray-500">
