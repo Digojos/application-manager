@@ -248,6 +248,34 @@ application-manager/
 
 ### Comandos Prisma úteis
 
+## Docker e SSL para `portal-apps.com.br`
+
+Este projeto pode rodar em Docker com MySQL, Nginx e Certbot.
+
+### Subir o stack
+
+```bash
+docker compose up -d db app nginx
+```
+
+### Emitir o certificado SSL
+
+Depois de apontar o DNS de `portal-apps.com.br` e `www.portal-apps.com.br` para o servidor, rode:
+
+```bash
+docker compose --profile certbot run --rm certbot certonly --webroot -w /var/www/certbot -d portal-apps.com.br -d www.portal-apps.com.br
+```
+
+Os arquivos ficam em `./certbot/conf` e o desafio HTTP em `./certbot/www`.
+
+### Renovação
+
+```bash
+docker compose --profile certbot run --rm certbot renew --webroot -w /var/www/certbot
+```
+
+Depois de emitir o certificado, o bloco HTTPS comentado em `nginx/default.conf` pode ser ativado se o tráfego público for apontado para este Nginx do Docker.
+
 ```bash
 # Criar e aplicar nova migration em desenvolvimento
 npx prisma migrate dev --name nome-da-migration
