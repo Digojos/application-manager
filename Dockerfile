@@ -5,7 +5,6 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
 ENV DATABASE_URL=mysql://root:root@localhost:3306/application_manager
 
 COPY package.json package-lock.json ./

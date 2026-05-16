@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useReducer, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
@@ -237,7 +237,7 @@ function gameReducer(state: GameState, action: Action): GameState {
   return state;
 }
 
-export default function PlacarVolei() {
+function PlacarVoleiContent() {
   const pageRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
@@ -1033,6 +1033,14 @@ export default function PlacarVolei() {
       )}
 
     </div>
+  );
+}
+
+export default function PlacarVolei() {
+  return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto px-4 py-6 text-sm text-gray-600">Carregando placar...</div>}>
+      <PlacarVoleiContent />
+    </Suspense>
   );
 }
 

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ScoreboardSessionsClient } from "./scoreboard-sessions-client";
 import { SessionActionsClient } from "./session-actions-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function ScoreboardSessionsPage() {
   const sessions: PublicScoreboardSessionRecord[] = await listScoreboardSessions();
 

@@ -99,7 +99,7 @@ function readState(state: Prisma.JsonValue): ScoreboardState {
   return normalizeScoreboardState(state as unknown as ScoreboardState);
 }
 
-export async function listScoreboardSessions(): Promise<PublicScoreboardSessionRecord[]> {
+export async function listScoreboardSessions(): Promise<ScoreboardSessionRecord[]> {
   return scoreboardSessionDb.scoreboardSession.findMany({
     orderBy: { updatedAt: "desc" },
   });
