@@ -36,6 +36,8 @@ services:
     networks:
       - app_network
     command: sh -c "npx prisma migrate deploy && npm run start"
+    ports:
+      - "3002:3001"
 
   nginx:
     image: nginx:1.27-alpine
