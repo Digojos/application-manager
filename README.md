@@ -77,6 +77,33 @@ Para outro dispositivo na mesma rede (celular, TV, notebook), use o IP da sua m�
 http://192.168.0.9:3000
 ```
 
+## Atualizando a versão do app com Docker Compose
+
+Para atualizar a versão do app (após alterações no código ou dependências), use:
+
+```sh
+docker compose up -d --build
+```
+
+Esse comando irá:
+- Rebuildar a imagem do app
+- Substituir o container antigo automaticamente
+- Manter volumes e banco de dados intactos
+
+Não é necessário rodar `docker compose down` ou remover containers manualmente, exceto se quiser parar e remover tudo (inclusive volumes e redes):
+
+```sh
+docker compose down
+```
+
+Depois, basta subir novamente:
+
+```sh
+docker compose up -d --build
+```
+
+---
+
 ## Scripts disponíveis
 
 | Script | Descrição |
