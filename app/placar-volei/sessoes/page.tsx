@@ -1,4 +1,5 @@
 import { listScoreboardSessions, type PublicScoreboardSessionRecord } from "@/lib/scoreboard-sessions";
+import Link from "next/link";
 import { ScoreboardSessionsClient } from "./scoreboard-sessions-client";
 import { SessionActionsClient } from "./session-actions-client";
 
@@ -15,6 +16,14 @@ export default async function ScoreboardSessionsPage() {
             Esta é a base para usar uma sessão compartilhada entre um controle e várias telas de exibição.
             A criação e atualização real-time virão na próxima etapa.
           </p>
+          <div className="mt-4">
+            <Link
+              href="/placar-volei/tv"
+              className="inline-flex items-center rounded-lg border border-cyan-300/35 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-300/20"
+            >
+              Abrir lista simplificada para TV
+            </Link>
+          </div>
           <ScoreboardSessionsClient />
         </section>
 

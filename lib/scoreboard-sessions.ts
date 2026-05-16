@@ -80,6 +80,8 @@ type ScoreboardSessionRecord = {
 
 export type PublicScoreboardSessionRecord = Omit<ScoreboardSessionRecord, "controlToken">;
 
+export type ActiveScoreboardSessionRecord = Pick<PublicScoreboardSessionRecord, "id" | "title" | "updatedAt">;
+
 export function toPublicScoreboardSession(session: ScoreboardSessionRecord): PublicScoreboardSessionRecord {
   const { controlToken: _controlToken, ...publicSession } = session;
   return publicSession;
@@ -101,6 +103,24 @@ export async function listScoreboardSessions(): Promise<PublicScoreboardSessionR
   return scoreboardSessionDb.scoreboardSession.findMany({
     orderBy: { updatedAt: "desc" },
   });
+}
+
+export async function listActiveScoreboardSessions(): Promise<ActiveScoreboardSessionRecord[]> {
+  const sessions: PublicScoreboardSessionRecord[] = await scoreboardSessionDb.scoreboardSession.findMany({
+    where: { archivedAt: null },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  return sessions
+    .filter((session) => {
+      const state = readState(session.state);
+      return !state.winner;
+    })
+    .map((session) => ({
+      id: session.id,
+      title: session.title,
+      updatedAt: session.updatedAt,
+    }));
 }
 
 export async function getScoreboardSessionById(id: string) {

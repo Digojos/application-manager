@@ -89,15 +89,36 @@ http://192.168.0.9:3000
 
 ## Rotas
 
+### Páginas
+
 | Rota | Descrição | Acesso |
 |---|---|---|
 | `/` | Home — lista as mini-aplicações ativas | Público |
-| `/login` | Tela de login do admin | Público |
+| `/login` | Tela de login | Público |
 | `/admin` | Painel de gerenciamento (CRUD de mini-apps) | Autenticado |
 | `/placar-volei` | Controle do placar (aceita `?sessionId=<id>`) | Público |
-| `/placar-volei/sessoes` | CRUD de sessões do placar | Público |
-| `/placar-volei/view/[id]` | Tela de visualização (somente leitura) da sessão | Público |
+| `/placar-volei/sessoes` | Gerenciamento de sessões (criar, abrir, excluir) | Público |
+| `/placar-volei/tv` | Lista de sessões em andamento para abrir na TV | Público |
+| `/placar-volei/view/[id]` | Visualização em tempo real da sessão (somente leitura) | Público |
 | `/[...slug]` | Fallback para rotas não implementadas | Público |
+
+### API
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/miniapps` | Lista mini-apps ativas |
+| `GET` | `/api/admin/miniapps` | Lista todas as mini-apps | 
+| `POST` | `/api/admin/miniapps` | Cria uma mini-app |
+| `PATCH` | `/api/admin/miniapps/[id]` | Atualiza uma mini-app |
+| `DELETE` | `/api/admin/miniapps/[id]` | Remove uma mini-app |
+| `GET` | `/api/auth/[...nextauth]` | Handlers de autenticação (Auth.js) |
+| `GET` | `/api/scoreboard-sessions` | Lista todas as sessões do placar |
+| `POST` | `/api/scoreboard-sessions` | Cria uma sessão |
+| `GET` | `/api/scoreboard-sessions/active` | Lista sessões em andamento (sem vencedor) |
+| `GET` | `/api/scoreboard-sessions/[id]` | Retorna uma sessão pelo ID |
+| `PATCH` | `/api/scoreboard-sessions/[id]` | Aplica uma ação/mutação na sessão |
+| `DELETE` | `/api/scoreboard-sessions/[id]` | Remove uma sessão |
+| `GET` | `/api/scoreboard-sessions/[id]/stream` | SSE — atualizações em tempo real da sessão |
 
 ## Placar de vôlei por sessão
 
