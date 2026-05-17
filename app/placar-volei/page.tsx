@@ -379,16 +379,41 @@ function PlacarVoleiContent() {
     applyAction({ type: "SET_CONFIG", config: { ...config, ...patch } });
   }
 
-  function updateTeamNameSize(rawValue: string) {
+  const safeTheme = normalizeScoreboardTheme(state.display);
+  // Estado local para sliders de tamanho de fonte
+  const [teamNameSizeSlider, setTeamNameSizeSlider] = useState(safeTheme.teamNameSize);
+  const [scoreSizeSlider, setScoreSizeSlider] = useState(safeTheme.scoreSize);
+
+  useEffect(() => {
+    setTeamNameSizeSlider(safeTheme.teamNameSize);
+  }, [safeTheme.teamNameSize]);
+
+  useEffect(() => {
+    setScoreSizeSlider(safeTheme.scoreSize);
+  }, [safeTheme.scoreSize]);
+
+  function updateTeamNameSizeSlider(rawValue: string) {
     const parsed = Number(rawValue);
     if (!Number.isFinite(parsed)) return;
-    applyAction({ type: "SET_THEME", display: { ...safeTheme, teamNameSize: parsed } });
+    setTeamNameSizeSlider(parsed);
   }
 
-  function updateScoreSize(rawValue: string) {
+  function commitTeamNameSize() {
+    if (teamNameSizeSlider !== safeTheme.teamNameSize) {
+      applyAction({ type: "SET_THEME", display: { ...safeTheme, teamNameSize: teamNameSizeSlider } });
+    }
+  }
+
+  function updateScoreSizeSlider(rawValue: string) {
     const parsed = Number(rawValue);
     if (!Number.isFinite(parsed)) return;
-    applyAction({ type: "SET_THEME", display: { ...safeTheme, scoreSize: parsed } });
+    setScoreSizeSlider(parsed);
+  }
+
+  function commitScoreSize() {
+    if (scoreSizeSlider !== safeTheme.scoreSize) {
+      applyAction({ type: "SET_THEME", display: { ...safeTheme, scoreSize: scoreSizeSlider } });
+    }
   }
 
   const toggleFullscreen = useCallback(async () => {
@@ -413,7 +438,7 @@ function PlacarVoleiContent() {
   const shellClass = isFullscreen
     ? "w-full min-h-screen px-3 py-3 sm:px-6 sm:py-6 flex flex-col"
     : "max-w-6xl mx-auto px-4 py-6";
-  const safeTheme = normalizeScoreboardTheme(state.display);
+  // safeTheme já está definido acima
   const pointsClass = "font-bold tabular-nums leading-none";
   const cardPaddingClass = isFullscreen ? "p-4 sm:p-6 md:p-8" : "p-5 md:p-6";
   const pointButtonSizeClass = isFullscreen ? "h-14 w-14 text-2xl" : "h-10 w-10 text-base";
@@ -744,11 +769,13 @@ function PlacarVoleiContent() {
                     type="range"
                     min={TEAM_NAME_SIZE_MIN}
                     max={TEAM_NAME_SIZE_MAX}
-                    value={safeTheme.teamNameSize}
-                    onChange={(e) => updateTeamNameSize(e.target.value)}
+                    value={teamNameSizeSlider}
+                    onChange={(e) => updateTeamNameSizeSlider(e.target.value)}
+                    onMouseUp={commitTeamNameSize}
+                    onTouchEnd={commitTeamNameSize}
                     className="flex-1 accent-indigo-600"
                   />
-                  <span className="w-10 text-right tabular-nums">{safeTheme.teamNameSize}px</span>
+                  <span className="w-10 text-right tabular-nums">{teamNameSizeSlider}px</span>
                 </div>
               </label>
 
@@ -759,11 +786,13 @@ function PlacarVoleiContent() {
                     type="range"
                     min={SCORE_SIZE_MIN}
                     max={SCORE_SIZE_MAX}
-                    value={safeTheme.scoreSize}
-                    onChange={(e) => updateScoreSize(e.target.value)}
+                    value={scoreSizeSlider}
+                    onChange={(e) => updateScoreSizeSlider(e.target.value)}
+                    onMouseUp={commitScoreSize}
+                    onTouchEnd={commitScoreSize}
                     className="flex-1 accent-indigo-600"
                   />
-                  <span className="w-14 text-right tabular-nums">{safeTheme.scoreSize}px</span>
+                  <span className="w-14 text-right tabular-nums">{scoreSizeSlider}px</span>
                 </div>
               </label>
 
