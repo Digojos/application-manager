@@ -897,11 +897,11 @@ function PlacarVoleiContent() {
       )}
 
       {!isFullscreen && winner && (
-        <div className="mb-4 sm:mb-6 rounded-xl bg-indigo-600 px-6 py-5 text-center text-white shadow-lg">
-          <p className="text-xl sm:text-2xl font-bold">{winner} venceu a partida</p>
+        <div className="mb-4 sm:mb-6 rounded-xl bg-white px-6 py-5 text-center text-black font-bold shadow-lg">
+          <p className="text-xl sm:text-2xl">{winner} venceu a partida</p>
           <button
             onClick={reset}
-            className="mt-3 rounded-lg bg-white text-indigo-600 px-5 py-2 text-sm font-medium hover:bg-indigo-50 transition-colors"
+            className="mt-3 rounded-lg bg-white text-black px-8 py-3 text-base font-bold border border-gray-300 shadow hover:bg-indigo-50 transition-colors"
           >
             Nova partida
           </button>
