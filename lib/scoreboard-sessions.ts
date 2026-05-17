@@ -111,16 +111,12 @@ export async function listActiveScoreboardSessions(): Promise<ActiveScoreboardSe
     orderBy: { updatedAt: "desc" },
   });
 
-  return sessions
-    .filter((session) => {
-      const state = readState(session.state);
-      return !state.winner;
-    })
-    .map((session) => ({
-      id: session.id,
-      title: session.title,
-      updatedAt: session.updatedAt,
-    }));
+  // Remove o filtro de sessões finalizadas para exibir todas
+  return sessions.map((session) => ({
+    id: session.id,
+    title: session.title,
+    updatedAt: session.updatedAt,
+  }));
 }
 
 export async function getScoreboardSessionById(id: string) {
