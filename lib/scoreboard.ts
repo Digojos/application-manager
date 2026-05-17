@@ -128,12 +128,13 @@ export function createInitialScoreboardState(
   nameA = "Time A",
   nameB = "Time B",
   config: ScoreboardMatchConfig = DEFAULT_SCOREBOARD_CONFIG,
+  display: ThemeConfig = DEFAULT_SCOREBOARD_THEME
 ): ScoreboardState {
   return {
     teamA: { name: nameA, points: 0, sets: 0 },
     teamB: { name: nameB, points: 0, sets: 0 },
     config: normalizeScoreboardConfig(config),
-    display: DEFAULT_SCOREBOARD_THEME,
+    display: normalizeScoreboardTheme(display),
     currentSet: 0,
     history: [],
     winner: null,
@@ -191,7 +192,7 @@ export function scoreboardReducer(state: ScoreboardState, action: ScoreboardActi
   }
 
   if (action.type === "RESET") {
-    return createInitialScoreboardState(state.teamA.name, state.teamB.name, state.config);
+    return createInitialScoreboardState(state.teamA.name, state.teamB.name, state.config, state.display);
   }
 
   if (action.type === "ADD_POINT") {
