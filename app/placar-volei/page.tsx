@@ -939,7 +939,7 @@ function PlacarVoleiContent() {
                     onKeyDown={(e) => e.key === "Enter" && saveName()}
                     className="flex-1 rounded-lg border border-gray-300 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     autoFocus
-                    maxLength={30}
+                    maxLength={35}
                   />
                   <button
                     onClick={saveName}
