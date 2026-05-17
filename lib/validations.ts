@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const pathRegex = /^\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const pathRegex = /^\/([a-z0-9]+(?:-[a-z0-9]+)*)(\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
 
 export const miniAppSchema = z.object({
   title: z

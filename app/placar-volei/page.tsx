@@ -483,66 +483,66 @@ function PlacarVoleiContent() {
   }, [buildViewUrl, isQrOpen, sessionId]);
 
   useEffect(() => {
-  const isTypingTarget = (target: EventTarget | null) => {
-    if (!(target instanceof HTMLElement)) return false;
-    const tag = target.tagName;
-    return (
-      tag === "INPUT" ||
-      tag === "TEXTAREA" ||
-      tag === "SELECT" ||
-      target.isContentEditable
-    );
-  };
+    const isTypingTarget = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName;
+      return (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target.isContentEditable
+      );
+    };
 
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (isTypingTarget(event.target)) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target)) return;
 
-    const key = event.key.toLowerCase();
+      const key = event.key.toLowerCase();
 
-    switch (key) {
-      case "e":
-        if (!winner && !setWonByA && !setWonByB) addPoint("A");
-        break;
-      case "w":
-        event.preventDefault();
-        swapPoint("A");
-        break;
-      case "q":
-        event.preventDefault();
-        removePoint("A");
-        break;
-      case "d":
-        event.preventDefault();
-        if (!winner && !setWonByA && !setWonByB) addPoint("B");
-        break;
-      case "s":
-        event.preventDefault();
-        swapPoint("B");
-        break;
-      case "a":
-        event.preventDefault();
-        removePoint("B");
-        break;
-      case "p":
-        event.preventDefault();
-        reset();
-        break;
-      case "f":
-        event.preventDefault();
-        void toggleFullscreen();
-        break;
-      case "enter":
-        event.preventDefault();
-        if (currentSetWinner && !winner) applyAction({ type: "FINISH_SET" });
-        break;
-      default:
-        break;
-    }
-  };
+      switch (key) {
+        case "e":
+          if (!winner && !setWonByA && !setWonByB) addPoint("A");
+          break;
+        case "w":
+          event.preventDefault();
+          swapPoint("A");
+          break;
+        case "q":
+          event.preventDefault();
+          removePoint("A");
+          break;
+        case "d":
+          event.preventDefault();
+          if (!winner && !setWonByA && !setWonByB) addPoint("B");
+          break;
+        case "s":
+          event.preventDefault();
+          swapPoint("B");
+          break;
+        case "a":
+          event.preventDefault();
+          removePoint("B");
+          break;
+        case "p":
+          event.preventDefault();
+          reset();
+          break;
+        case "f":
+          event.preventDefault();
+          void toggleFullscreen();
+          break;
+        case "enter":
+          event.preventDefault();
+          if (currentSetWinner && !winner) applyAction({ type: "FINISH_SET" });
+          break;
+        default:
+          break;
+      }
+    };
 
-  window.addEventListener("keydown", onKeyDown);
-  return () => window.removeEventListener("keydown", onKeyDown);
-}, [addPoint, removePoint, swapPoint, applyAction, toggleFullscreen, winner, setWonByA, setWonByB, currentSetWinner]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [addPoint, removePoint, swapPoint, applyAction, toggleFullscreen, winner, setWonByA, setWonByB, currentSetWinner]);
 
   return (
     <div ref={pageRef} className={shellClass}>
@@ -739,26 +739,32 @@ function PlacarVoleiContent() {
 
               <label className="text-xs text-gray-600 flex flex-col gap-1">
                 Fonte nome ({TEAM_NAME_SIZE_MIN}-{TEAM_NAME_SIZE_MAX}px)
-                <input
-                  type="number"
-                  min={TEAM_NAME_SIZE_MIN}
-                  max={TEAM_NAME_SIZE_MAX}
-                  value={safeTheme.teamNameSize}
-                  onChange={(e) => updateTeamNameSize(e.target.value)}
-                  className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={TEAM_NAME_SIZE_MIN}
+                    max={TEAM_NAME_SIZE_MAX}
+                    value={safeTheme.teamNameSize}
+                    onChange={(e) => updateTeamNameSize(e.target.value)}
+                    className="flex-1 accent-indigo-600"
+                  />
+                  <span className="w-10 text-right tabular-nums">{safeTheme.teamNameSize}px</span>
+                </div>
               </label>
 
               <label className="text-xs text-gray-600 flex flex-col gap-1">
                 Fonte placar ({SCORE_SIZE_MIN}-{SCORE_SIZE_MAX}px)
-                <input
-                  type="number"
-                  min={SCORE_SIZE_MIN}
-                  max={SCORE_SIZE_MAX}
-                  value={safeTheme.scoreSize}
-                  onChange={(e) => updateScoreSize(e.target.value)}
-                  className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={SCORE_SIZE_MIN}
+                    max={SCORE_SIZE_MAX}
+                    value={safeTheme.scoreSize}
+                    onChange={(e) => updateScoreSize(e.target.value)}
+                    className="flex-1 accent-indigo-600"
+                  />
+                  <span className="w-14 text-right tabular-nums">{safeTheme.scoreSize}px</span>
+                </div>
               </label>
 
               <label className="text-xs text-gray-600 flex items-center gap-2 sm:pt-6 xl:pt-0 xl:items-end">
