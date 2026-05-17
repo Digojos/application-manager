@@ -198,11 +198,12 @@ export function ViewSessionClient({ sessionId }: ViewSessionClientProps) {
         <div className="grid flex-1 grid-cols-1 gap-4 landscape:grid-cols-2 lg:grid-cols-2">
           {(["A", "B"] as const).map((team) => {
             const teamState = team === "A" ? state.teamA : state.teamB;
-
+            // Troféu se for o vencedor
+            const isWinner = state.winner && state.winner === teamState.name;
             return (
               <section
                 key={team}
-                className={`rounded-3xl border border-white/10 shadow-2xl backdrop-blur ${cardPaddingClass} flex flex-col min-h-[42vh] sm:min-h-[48vh] lg:min-h-0`}
+                className={`rounded-3xl border border-white/10 shadow-2xl backdrop-blur ${cardPaddingClass} flex flex-col min-h-[42vh] sm:min-h-[48vh] lg:min-h-0${isWinner ? " ring-4 ring-amber-400/80" : ""}`}
                 style={{ backgroundColor: safeTheme.cardBackgroundColor, color: safeTheme.cardFontColor }}
               >
                 {safeTheme.showTeamNames && (
@@ -211,7 +212,7 @@ export function ViewSessionClient({ sessionId }: ViewSessionClientProps) {
                       className={`wrap-break-word text-center font-black ${isFullscreen ? "text-4xl sm:text-5xl" : "text-3xl"}`}
                       style={{ fontSize: teamNameFontSize }}
                     >
-                      {teamState.name}
+                      {teamState.name} {isWinner && <span title="Vencedor" className="inline-block align-middle ml-2 text-amber-400 text-2xl">🏆</span>}
                     </h2>
                   </div>
                 )}
