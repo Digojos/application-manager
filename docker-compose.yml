@@ -29,6 +29,7 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-https://portal-apps.com.br}
       NODE_ENV: production
       PORT: 3001
+      AUTH_TRUST_HOST: "true"
     depends_on:
       db:
         condition: service_healthy
