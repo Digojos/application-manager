@@ -86,7 +86,7 @@ function normalizeConfig(config: MatchConfig): MatchConfig {
     totalSets: Math.max(1, Math.min(9, oddSets)),
     pointsPerSet: Math.max(1, Math.min(99, config.pointsPerSet)),
     tieBreakPoints: Math.max(1, Math.min(99, config.tieBreakPoints)),
-    minAdvantage: Math.max(0, Math.min(10, config.minAdvantage)),
+    minAdvantage: Math.max(1, Math.min(10, config.minAdvantage)),
     useTieBreak: config.useTieBreak,
   };
 }
@@ -798,7 +798,7 @@ function PlacarVoleiContent() {
                       (e.target as HTMLInputElement).blur();
                     }
                   }}
-                  min={0}
+                  min={1}
                   max={10}
                   title="Valor permitido: 0 a 10 (padrão: 2)"
                   className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
