@@ -621,8 +621,7 @@ function PlacarVoleiContent() {
                   </Link>
                 </div>
               </div>
-              {sessionError && <p className="mt-2 text-xs text-rose-700">{sessionError}</p>}
-              {isSyncingSession && <p className="mt-1 text-xs text-emerald-700">Sincronizando alterações...</p>}
+            
               {copyStatus === "copied" && <p className="mt-1 text-xs text-emerald-700">URL da visualização copiada.</p>}
               {copyStatus === "error" && <p className="mt-1 text-xs text-rose-700">Não foi possível copiar automaticamente.</p>}
               {isQrOpen && (
@@ -721,7 +720,7 @@ function PlacarVoleiContent() {
                 Vantagem minima
                 <input
                   type="number"
-                  min={1}
+                  min={0}
                   max={10}
                   value={config.minAdvantage}
                   onChange={(e) =>
