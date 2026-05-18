@@ -79,10 +79,21 @@ http://192.168.0.9:3000
 
 ## Atualizando a versão do app com Docker Compose
 
-Para atualizar a versão do app (após alterações no código ou dependências), use:
+
+## Deploy e atualização com Docker Compose
+
+### Subir o stack
 
 ```sh
-docker compose up -d --build
+docker compose up -d db app nginx
+```
+
+### Atualizar o app após alterações
+
+Se você alterou código, dependências, variáveis de ambiente no docker-compose.yml ou arquivos copiados no Dockerfile:
+
+```sh
+docker compose up -d --build app
 ```
 
 Esse comando irá:
@@ -90,17 +101,49 @@ Esse comando irá:
 - Substituir o container antigo automaticamente
 - Manter volumes e banco de dados intactos
 
-Não é necessário rodar `docker compose down` ou remover containers manualmente, exceto se quiser parar e remover tudo (inclusive volumes e redes):
+### Quando usar rebuild sem cache?
+
+Use rebuild sem cache se:
+- Alterou o Dockerfile
+- Mudou arquivos copiados no build (ex: package.json, lib/, etc)
+- Mudou variáveis de ambiente no docker-compose.yml
+- O build está usando arquivos antigos (problemas de cache)
+
+Para forçar rebuild sem cache:
 
 ```sh
-docker compose down
+docker compose build --no-cache app
+docker compose up -d app
+```
+ou
+```sh
+docker compose up -d --build --no-deps --force-recreate --no-cache app
 ```
 
-Depois, basta subir novamente:
+### Mudanças só no .env
+
+Se você alterou apenas o .env e as variáveis não são usadas no build, só reinicie:
 
 ```sh
-docker compose up -d --build
+docker compose restart app
 ```
+
+### Troubleshooting
+
+- Para ver logs do app em tempo real:
+	```sh
+	docker compose logs -f app
+	```
+- Para ver só os últimos logs:
+	```sh
+	docker compose logs --tail=50 app
+	```
+- Se quiser limpar todos os containers, volumes e redes:
+	```sh
+	docker compose down -v
+	```
+
+---
 
 ---
 
