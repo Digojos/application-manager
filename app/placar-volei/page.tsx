@@ -86,7 +86,7 @@ function normalizeConfig(config: MatchConfig): MatchConfig {
     totalSets: Math.max(1, Math.min(9, oddSets)),
     pointsPerSet: Math.max(1, Math.min(99, config.pointsPerSet)),
     tieBreakPoints: Math.max(1, Math.min(99, config.tieBreakPoints)),
-    minAdvantage: Math.max(1, Math.min(10, config.minAdvantage)),
+    minAdvantage: Math.max(0, Math.min(10, config.minAdvantage)),
     useTieBreak: config.useTieBreak,
   };
 }
@@ -238,6 +238,12 @@ function gameReducer(state: GameState, action: Action): GameState {
 }
 
 function PlacarVoleiContent() {
+    // Toast para avisos de validação
+  const [toast, setToast] = useState<string | null>(null);
+    function showToast(msg: string) {
+      setToast(msg);
+      setTimeout(() => setToast(null), 2000);
+    }
   const pageRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
@@ -378,6 +384,16 @@ function PlacarVoleiContent() {
   function updateConfig(patch: Partial<MatchConfig>) {
     applyAction({ type: "SET_CONFIG", config: { ...config, ...patch } });
   }
+
+  // Estados locais para inputs numéricos
+  const [pointsPerSetInput, setPointsPerSetInput] = useState(config.pointsPerSet.toString());
+  const [tieBreakPointsInput, setTieBreakPointsInput] = useState(config.tieBreakPoints.toString());
+  const [minAdvantageInput, setMinAdvantageInput] = useState(config.minAdvantage.toString());
+
+  // Sincronizar estado local ao mudar config externo (ex: reset, hydrate)
+  useEffect(() => { setPointsPerSetInput(config.pointsPerSet.toString()); }, [config.pointsPerSet]);
+  useEffect(() => { setTieBreakPointsInput(config.tieBreakPoints.toString()); }, [config.tieBreakPoints]);
+  useEffect(() => { setMinAdvantageInput(config.minAdvantage.toString()); }, [config.minAdvantage]);
 
   const safeTheme = normalizeScoreboardTheme(state.display);
   // Estado local para sliders de tamanho de fonte
@@ -687,16 +703,36 @@ function PlacarVoleiContent() {
                 </select>
               </label>
 
+
               <label className="text-xs text-gray-600 flex flex-col gap-1">
                 Pontos por set
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={pointsPerSetInput}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (/^\d*$/.test(val)) setPointsPerSetInput(val);
+                  }}
+                  onBlur={() => {
+                    let n = parseInt(pointsPerSetInput, 10);
+                    let outOfRange = false;
+                    if (!Number.isFinite(n)) n = 1;
+                    if (n < 1 || n > 99) outOfRange = true;
+                    n = Math.max(1, Math.min(99, n));
+                    setPointsPerSetInput(n.toString());
+                    if (n !== config.pointsPerSet) updateConfig({ pointsPerSet: n });
+                    if (outOfRange) showToast('Pontos por set: valor permitido entre 1 e 99');
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
                   min={1}
                   max={99}
-                  value={config.pointsPerSet}
-                  onChange={(e) =>
-                    updateConfig({ pointsPerSet: Number(e.target.value) })
-                  }
+                  title="Valor permitido: 1 a 99"
                   className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </label>
@@ -704,13 +740,32 @@ function PlacarVoleiContent() {
               <label className="text-xs text-gray-600 flex flex-col gap-1">
                 Pontos do tie-break
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={tieBreakPointsInput}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (/^\d*$/.test(val)) setTieBreakPointsInput(val);
+                  }}
+                  onBlur={() => {
+                    let n = parseInt(tieBreakPointsInput, 10);
+                    let outOfRange = false;
+                    if (!Number.isFinite(n)) n = 1;
+                    if (n < 1 || n > 99) outOfRange = true;
+                    n = Math.max(1, Math.min(99, n));
+                    setTieBreakPointsInput(n.toString());
+                    if (n !== config.tieBreakPoints) updateConfig({ tieBreakPoints: n });
+                    if (outOfRange) showToast('Pontos do tie-break: valor permitido entre 1 e 99');
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
                   min={1}
                   max={99}
-                  value={config.tieBreakPoints}
-                  onChange={(e) =>
-                    updateConfig({ tieBreakPoints: Number(e.target.value) })
-                  }
+                  title="Valor permitido: 1 a 99"
                   className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   disabled={!config.useTieBreak}
                 />
@@ -719,13 +774,33 @@ function PlacarVoleiContent() {
               <label className="text-xs text-gray-600 flex flex-col gap-1">
                 Vantagem minima
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={minAdvantageInput}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (/^\d*$/.test(val)) setMinAdvantageInput(val);
+                  }}
+                  onBlur={() => {
+                    let n = parseInt(minAdvantageInput, 10);
+                    let outOfRange = false;
+                    if (!Number.isFinite(n)) n = 2;
+                    if (n < 0 || n > 10) outOfRange = true;
+                    n = Math.max(0, Math.min(10, n));
+                    if (n !== parseInt(minAdvantageInput, 10)) n = 2; // valor default se fora do range
+                    setMinAdvantageInput(n.toString());
+                    if (n !== config.minAdvantage) updateConfig({ minAdvantage: n });
+                    if (outOfRange) showToast('Vantagem mínima: valor permitido entre 0 e 10 (padrão: 2)');
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
                   min={0}
                   max={10}
-                  value={config.minAdvantage}
-                  onChange={(e) =>
-                    updateConfig({ minAdvantage: Number(e.target.value) })
-                  }
+                  title="Valor permitido: 0 a 10 (padrão: 2)"
                   className="rounded-lg border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </label>
