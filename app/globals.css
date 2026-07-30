@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Placar de basquete: números do cronômetro/posse/placar no estilo display de 7 segmentos. */
+@font-face {
+  font-family: "SevenSegment";
+  src: url("/fonts/seven-segment.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-seven-segment {
+  font-family: "SevenSegment", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}

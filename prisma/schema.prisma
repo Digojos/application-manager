@@ -43,3 +43,16 @@ model ScoreboardSession {
 
   @@map("scoreboard_sessions")
 }
+
+model BasketballSession {
+  id            String    @id @default(cuid())
+  title         String    @db.VarChar(120)
+  controlToken  String    @unique @default(cuid())
+  state         Json
+  previousState Json?
+  archivedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("basketball_sessions")
+}

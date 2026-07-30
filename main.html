@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteio de Times por Habilidade</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 500px;
+            margin: 32px auto;
+            padding: 24px 18px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            transition: box-shadow 0.3s;
+        }
+        .container:hover {
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 2rem;
+            color: #007BFF;
+            letter-spacing: 1px;
+        }
+        .input-group {
+            margin-bottom: 18px;
+        }
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 7px;
+            color: #333;
+        }
+        .input-group input, .input-group select {
+            width: 80%;
+            margin: 0 auto;
+            display: block;
+            padding: 10px;
+            border: 1px solid #b0c4de;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #f7fbff;
+            transition: border-color 0.2s;
+        }
+        .input-group input:focus, .input-group select:focus {
+            border-color: #007BFF;
+            outline: none;
+        }
+        button, input[type="file"]::-webkit-file-upload-button {
+            font-family: inherit;
+        }
+        button {
+            background: linear-gradient(90deg, #007BFF 0%, #00C6FF 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 6px 0;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #0056b3 0%, #007BFF 100%);
+            box-shadow: 0 4px 16px rgba(0,123,255,0.12);
+        }
+        button.mover-btn, button.remover-btn {
+            background: transparent;
+            border: none;
+            color: #007BFF;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            margin-left: 6px;
+            transition: background 0.2s;
+        }
+        button.mover-btn:hover, button.remover-btn:hover {
+            background: #e3f2fd;
+        }
+        button.remover-btn {
+            color: #dc3545;
+        }
+        .results {
+            margin-top: 24px;
+        }
+        .clipboard-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .clipboard-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.3em;
+            color: #007BFF;
+            vertical-align: middle;
+        }
+        .clipboard-title {
+                    .clipboard-btn:hover, .clipboard-btn:focus {
+                        background: none !important;
+                        box-shadow: none !important;
+                    }
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #222;
+        }
+        .clipboard-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 1.3em;
+            color: #007BFF;
+            vertical-align: middle;
+        }
+        .times-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-top: 18px;
+        }
+        .time-card {
+            background: #f7fbff;
+            border: 1px solid #b0c4de;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.07);
+            padding: 16px 14px;
+            min-width: 220px;
+            flex: 1 1 220px;
+        }
+        .time-card h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #007BFF;
+            font-size: 1.15rem;
+        }
+        .time-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 10px 0;
+        }
+        .time-card li {
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .habilidade-total {
+            font-weight: 600;
+            color: #333;
+            margin-top: 8px;
+        }
+        .results div {
+            margin-bottom: 12px;
+        }
+        .estrela-dourada {
+            color: gold;
+            font-size: 1.2rem;
+            margin-right: 2px;
+        }
+        .feedback {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+            font-size: 1rem;
+        }
+        .feedback.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #b7e4c7;
+        }
+        .feedback.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        @media (max-width: 600px) {
+            .container {
+                max-width: 98vw;
+                padding: 10vw 2vw;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            h1 {
+                font-size: 1.3rem;
+            }
+            .input-group input, .input-group select {
+                width: 80%;
+                font-size: 0.95rem;
+                padding: 10px;
+                margin: 0 auto;
+                display: block;
+            }
+            button {
+                font-size: 0.95rem;
+                padding: 9px 12px;
+            }
+            .results {
+                margin-top: 16px;
+            }
+        }
+        @media (max-width: 400px) {
+            .container {
+                padding: 2vw 1vw;
+            }
+            h1 {
+                font-size: 1rem;
+            }
+            .input-group input, .input-group select {
+                width: 95%;
+                margin: 0 auto;
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sorteio de Times</h1>
+
+        <div class="input-group">
+            <label for="nome">Nome do Jogador:</label>
+            <input type="text" id="nome" placeholder="Digite o nome do jogador">
+        </div>
+        <div class="input-group">
+            <label for="habilidade">Habilidade (1 a 5):</label>
+            <select id="habilidade">
+                <option value="1">★</option>
+                <option value="2">★★</option>
+                <option value="3">★★★</option>
+                <option value="4">★★★★</option>
+                <option value="5">★★★★★</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="numTimes">Número de Times:</label>
+            <input type="number" id="numTimes" min="2" placeholder="Digite o número de times">
+        </div>
+        <div class="input-group">
+            <label for="jogadoresPorTime">Quantidade de Jogadores por Time:</label>
+            <input type="number" id="jogadoresPorTime" min="1" placeholder="Digite a quantidade de jogadores por time">
+        </div>
+        
+        <button onclick="adicionarJogador()">Adicionar Jogador</button>
+        
+        <div class="input-group">
+            <label for="csvUpload">Importar CSV:</label>
+            <input type="file" id="csvUpload" accept=".csv" onchange="importarCSV(event)">
+                <button type="button" onclick="baixarTemplateCSV()" title="Baixar template CSV" style="background: none; border: none; padding: 0; margin-left: 8px;">
+                    <i class="fas fa-download" style="font-size: 1.5em; color: #007BFF;"></i>
+                </button>
+        </div>
+
+        <div class="feedback" id="feedback"></div>
+
+        <button id="toggleJogadoresBtn" onclick="toggleJogadoresLista()" style="background: #f7fbff; color: #007BFF; border: 1px solid #b0c4de; border-radius: 8px; padding: 8px 16px; margin-top: 18px; margin-bottom: 12px; font-weight: 600; cursor: pointer;">
+            <i class="fas fa-eye"></i> Ocultar Lista de Jogadores
+        </button>
+        
+        <div class="results" id="jogadores-lista">
+            <h2>Jogadores:</h2>
+            <button id="btnRemoverTodos" onclick="removerTodosJogadores()" style="background-color: #dc3545; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; margin-bottom: 10px; font-weight: 600; cursor: pointer;">Remover Todos</button>
+        </div>
+        
+        <button onclick="sortearTimes()" style="margin-top: 18px;">Sortear Times</button>
+        <!-- <button onclick="resortearTimes()" id="resortearBtn">Resortear Times</button> -->
+        <button onclick="exportarCSV()" id="exportarBtn" style="display: none;">Exportar Times para CSV</button>
+        <button onclick="exportarJogadoresCSV()" id="exportarJogadoresBtn" style="display: block; margin-top: 8px;">Exportar jogadores para CSV</button>
+        
+        <div class="results" id="resultado-times"></div>
+    </div>
+
+    <script>
+                                // Função para exportar a lista de jogadores preenchida para CSV
+                                function exportarJogadoresCSV() {
+                                    if (!jogadores || jogadores.length === 0) {
+                                        mostrarFeedback('Nenhum jogador para exportar.', 'error');
+                                        return;
+                                    }
+                                    let csvContent = 'Nome,Habilidade\n';
+                                    jogadores.forEach(jogador => {
+                                        csvContent += `${jogador.nome},${jogador.habilidade}\n`;
+                                    });
+                                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                                    const link = document.createElement('a');
+                                    link.href = URL.createObjectURL(blob);
+                                    link.download = 'jogadores.csv';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                }
+                        // Função para copiar os dados dos times para o clipboard
+                            function copiarTimesClipboard() {
+                                if (!window.times || window.times.length === 0) {
+                                    mostrarFeedback('Nenhum time gerado para copiar.', 'error');
+                                    return;
+                                }
+                                let texto = '';
+                                window.times.forEach((time, idx) => {
+                                    texto += `Time ${idx + 1}\n`;
+                                    time.forEach(jogador => {
+                                        texto += `${jogador.nome}\n`;
+                                        // texto += `${jogador.nome} - Habilidade: ${jogador.habilidade}\n`;
+                                    });
+                                    texto += `\n`;
+                                    // texto += `Total de Habilidade: ${time.reduce((t, j) => t + j.habilidade, 0)}\n\n`;
+                                });
+                                navigator.clipboard.writeText(texto)
+                                    .then(() => mostrarFeedback('Dados dos times copiados para o clipboard!', 'success'))
+                                    .catch((err) => {
+                                        window.alert('Erro ao copiar para o clipboard: ' + err);
+                                        mostrarFeedback('Erro ao copiar para o clipboard.', 'error');
+                                    });
+                            }
+                // Função para exibir/ocultar lista de jogadores
+                function toggleJogadoresLista() {
+                    const lista = document.getElementById("jogadores-lista");
+                    const btn = document.getElementById("toggleJogadoresBtn");
+                    if (lista.style.display === "none") {
+                        lista.style.display = "block";
+                        btn.innerHTML = '<i class="fas fa-eye"></i> Ocultar Lista de Jogadores';
+                    } else {
+                        lista.style.display = "none";
+                        btn.innerHTML = '<i class="fas fa-eye-slash"></i> Exibir Lista de Jogadores';
+                    }
+                }
+        let jogadores = [];
+        window.times = [];
+        // Função para baixar template CSV
+        function baixarTemplateCSV() {
+            const csvContent = 'Nome,Habilidade\n\n\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'template_jogadores.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        // Função para remover todos os jogadores da lista
+        function removerTodosJogadores() {
+            if (jogadores.length === 0) {
+                mostrarFeedback('Nenhum jogador para remover.', 'error');
+                return;
+            }
+            if (confirm('Tem certeza que deseja remover todos os jogadores?')) {
+                jogadores = [];
+                atualizarListaJogadores();
+                salvarJogadores();
+                mostrarFeedback('Todos os jogadores foram removidos.', 'success');
+            }
+        }
+
+        // Função para resortear os times
+        function resortearTimes() {
+            sortearTimes();
+        }
+
+        // Carregar jogadores do localStorage ao iniciar
+        carregarJogadores();
+        // Garante que a lista seja exibida ao carregar a página
+        setTimeout(() => atualizarListaJogadores(), 0);
+
+        // Função para adicionar jogador manualmente
+        function adicionarJogador() {
+            const nome = document.getElementById("nome").value.trim();
+            const habilidade = parseInt(document.getElementById("habilidade").value);
+
+            if (!nome || isNaN(habilidade)) {
+                mostrarFeedback("Por favor, insira o nome e habilidade do jogador.", "error");
+                return;
+            }
+
+            if (jogadores.some(jogador => jogador.nome === nome)) {
+                mostrarFeedback("Jogador com este nome já existe.", "error");
+                return;
+            }
+
+            jogadores.push({ nome, habilidade });
+            document.getElementById("nome").value = "";
+            atualizarListaJogadores();
+            salvarJogadores();
+            mostrarFeedback("Jogador adicionado com sucesso!", "success");
+        }
+
+        // Função para atualizar a lista de jogadores na tela
+        function atualizarListaJogadores() {
+            const lista = document.getElementById("jogadores-lista");
+            lista.innerHTML = "<h2>Jogadores:</h2><button id='btnRemoverTodos' onclick='removerTodosJogadores()' style='background-color: #dc3545; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; margin-bottom: 10px; font-weight: 600; cursor: pointer;'>Remover Todos</button>";
+            jogadores.forEach((jogador, index) => {
+                lista.innerHTML += `
+                    <div>
+                        ${index + 1}. ${jogador.nome} - ${mostrarEstrelas(jogador.habilidade)}
+                        <button class='remover-btn' onclick='removerJogador(${index})'>
+                            <i class='fas fa-trash'></i>
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        // Função para mostrar as estrelas como símbolo
+        function mostrarEstrelas(habilidade) {
+            let estrelas = "";
+            for (let i = 0; i < habilidade; i++) {
+                estrelas += "<span class='estrela-dourada'>★</span>";
+            }
+            return estrelas;
+        }
+
+        // Função para remover jogador da lista
+        function removerJogador(index) {
+            jogadores.splice(index, 1);
+            atualizarListaJogadores();
+            salvarJogadores();
+            mostrarFeedback("Jogador removido com sucesso!", "success");
+        }
+
+        // Função para importar CSV com nome e habilidade
+        function importarCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const lines = content.split(/\r?\n/);
+                let algumImportado = false;
+                let erroFormatacao = false;
+                // Ignora a primeira linha (cabeçalho)
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const partes = line.split(',');
+                    if (partes.length < 2) continue;
+                    const nome = partes[0].trim();
+                    const habilidade = partes[1].trim();
+                    if (!nome || !habilidade || isNaN(habilidade)) {
+                        erroFormatacao = true;
+                        continue;
+                    }
+                    jogadores.push({ nome, habilidade: parseInt(habilidade) });
+                    algumImportado = true;
+                }
+                if (!algumImportado) {
+                    mostrarFeedback("Nenhum jogador válido foi importado.", "error");
+                } else if (erroFormatacao) {
+                    atualizarListaJogadores();
+                    salvarJogadores();
+                    mostrarFeedback("Algumas linhas foram ignoradas por erro de formato, mas jogadores válidos foram importados!", "error");
+                } else {
+                    atualizarListaJogadores();
+                    salvarJogadores();
+                    mostrarFeedback("CSV importado com sucesso!", "success");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Função para sortear os times e garantir que eles sejam equilibrados
+        function sortearTimes() {
+                        // Embaralha os jogadores para garantir sorteios diferentes
+                        shuffleArray(jogadores);
+            const numTimesInput = document.getElementById("numTimes");
+            const jogadoresPorTimeInput = document.getElementById("jogadoresPorTime");
+            const numTimes = parseInt(numTimesInput.value);
+            const jogadoresPorTime = parseInt(jogadoresPorTimeInput.value);
+
+            if (!numTimes || numTimes < 2) {
+                mostrarFeedback("Por favor, insira um número válido de times (mínimo 2).", "error");
+                numTimesInput.focus();
+                numTimesInput.scrollIntoView({ behavior: "smooth", block: "center" });
+                return;
+            }
+            if (!jogadoresPorTime || jogadoresPorTime < 1) {
+                mostrarFeedback("Por favor, insira uma quantidade válida de jogadores por time (mínimo 1).", "error");
+                jogadoresPorTimeInput.focus();
+                jogadoresPorTimeInput.scrollIntoView({ behavior: "smooth", block: "center" });
+                return;
+            }
+            if (jogadores.length < numTimes * jogadoresPorTime) {
+                mostrarFeedback("Jogadores insuficientes para preencher os times.", "error");
+                return;
+            }
+
+            // Ordena os jogadores por habilidade de forma decrescente
+            jogadores.sort((a, b) => b.habilidade - a.habilidade);
+        // Função para embaralhar array (Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+            // Inicializa os times
+            let timesSorteados = Array.from({ length: numTimes }, () => []);
+
+            // Distribui os jogadores alternadamente
+            let jogadorIndex = 0;
+            while (jogadorIndex < jogadores.length) {
+                for (let i = 0; i < numTimes; i++) {
+                    if (timesSorteados[i].length < jogadoresPorTime && jogadorIndex < jogadores.length) {
+                        timesSorteados[i].push(jogadores[jogadorIndex]);
+                        jogadorIndex++;
+                    }
+                }
+            }
+
+            // Balanceia os times
+            balancearTimes(timesSorteados, jogadoresPorTime);
+
+            // Exibe o resultado
+            window.times = timesSorteados;
+            exibirResultado(window.times);
+            document.getElementById("exportarBtn").style.display = "block";
+        }
+
+        // Função para balancear os times
+        function balancearTimes(times, jogadoresPorTime) {
+            let margemDiferenca = 5; // Margem inicial aceitável para a diferença de habilidades
+            let contador = 0; // Contador de tentativas
+            const limiteTentativas = 100; // Limite máximo de tentativas
+
+            // Verifica se o balanceamento é viável antes de começar
+            if (!verificarViabilidade(times, margemDiferenca)) {
+                console.warn("Balanceamento inviável: diferença de habilidades muito grande.");
+                return times; // Retorna os times sem balanceamento
+            }
+
+            while (contador < limiteTentativas) {
+                // Calcula as somas de habilidades de cada time
+                let somaHabilidades = times.map(time =>
+                    time.reduce((total, jogador) => total + jogador.habilidade, 0)
+                );
+
+                let diferencaMaxima = Math.max(...somaHabilidades) - Math.min(...somaHabilidades);
+
+                // Verifica se os times estão balanceados
+                if (
+                    diferencaMaxima <= margemDiferenca &&
+                    verificarTamanhosIguais(times, jogadoresPorTime)
+                ) {
+                    console.log("Times balanceados com sucesso!");
+                    return times;
+                }
+
+                // Aumenta a margem de diferença se o contador passar da metade do limite
+                if (contador > limiteTentativas / 2) {
+                    margemDiferenca += 1; // Aumenta a margem para facilitar o balanceamento
+                }
+
+                // Identifica o time mais forte e o time mais fraco
+                let timeMaisForte = somaHabilidades.indexOf(Math.max(...somaHabilidades));
+                let timeMaisFraco = somaHabilidades.indexOf(Math.min(...somaHabilidades));
+
+                // Encontra o jogador de maior habilidade no time mais forte
+                let jogadorMover = times[timeMaisForte].reduce((maior, jogador) =>
+                    jogador.habilidade > maior.habilidade ? jogador : maior
+                );
+
+                // Move o jogador do time mais forte para o mais fraco
+                let indiceJogador = times[timeMaisForte].indexOf(jogadorMover);
+                if (indiceJogador !== -1) {
+                    times[timeMaisFraco].push(jogadorMover);
+                    times[timeMaisForte].splice(indiceJogador, 1);
+                }
+
+                contador++;
+            }
+
+            console.warn("Não foi possível balancear os times dentro do limite de tentativas.");
+            return times; // Retorna os times mesmo que não estejam perfeitamente balanceados
+        }
+
+        // Função para verificar se o balanceamento é viável
+        function verificarViabilidade(times, margemDiferenca) {
+            const totalHabilidades = times.flat().reduce((total, jogador) => total + jogador.habilidade, 0);
+            const numTimes = times.length;
+            const mediaPorTime = totalHabilidades / numTimes;
+
+            // Verifica se a diferença entre a soma máxima e mínima possível está dentro da margem
+            const somaMaxima = mediaPorTime + margemDiferenca;
+            const somaMinima = mediaPorTime - margemDiferenca;
+
+            return somaMaxima - somaMinima <= margemDiferenca * 2;
+        }
+
+        // Função para verificar se todos os times têm o mesmo tamanho
+        function verificarTamanhosIguais(times, jogadoresPorTime) {
+            return times.every(time => time.length === jogadoresPorTime);
+        }
+
+        // Função para exibir o resultado dos times
+        function exibirResultado(times) {
+            const resultado = document.getElementById("resultado-times");
+            let html = `<div class='clipboard-container'>
+                <button class='clipboard-btn' onclick='copiarTimesClipboard()' title='Copiar para compartilhar'>
+                    <svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 32 32' fill='none' stroke='#007BFF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'>
+                        <rect x='7' y='11' width='14' height='14' rx='2' ry='2'/>
+                        <rect x='11' y='7' width='14' height='14' rx='2' ry='2'/>
+                    </svg>
+                </button>
+                <span class='clipboard-title'>Resultado dos Times:</span>
+            </div>
+            <div class='times-cards'>`;
+                    // Função para copiar os dados dos times para o clipboard
+                    function copiarTimesClipboard() {
+                        if (!times || times.length === 0) {
+                            mostrarFeedback('Nenhum time gerado para copiar.', 'error');
+                            return;
+                        }
+                        let texto = '';
+                        times.forEach((time, idx) => {
+                            texto += `Time ${idx + 1}\n`;
+                            time.forEach(jogador => {
+                                texto += `${jogador.nome} - Habilidade: ${jogador.habilidade}\n`;
+                            });
+                            texto += `Total de Habilidade: ${time.reduce((t, j) => t + j.habilidade, 0)}\n\n`;
+                        });
+                        navigator.clipboard.writeText(texto)
+                            .then(() => mostrarFeedback('Dados dos times copiados para o clipboard!', 'success'))
+                            .catch(() => mostrarFeedback('Erro ao copiar para o clipboard.', 'error'));
+                    }
+            times.forEach((time, index) => {
+                html += `<div class='time-card'>
+                    <h3>Time ${index + 1}</h3>
+                    <ul>`;
+                time.forEach((jogador, jogadorIndex) => {
+                    html += `<li>
+                        <span>${jogador.nome} - ${mostrarEstrelas(jogador.habilidade)}</span>
+                        <button class='mover-btn' onclick='moverJogador(${index}, ${jogadorIndex})' title='Mover jogador'>
+                            <i class='fas fa-sync-alt'></i>
+                        </button>
+                    </li>`;
+                });
+                const habilidadeTotal = time.reduce((total, jogador) => total + jogador.habilidade, 0);
+                html += `</ul>
+                    <div class='habilidade-total'>Total de Habilidade: ${habilidadeTotal}</div>
+                </div>`;
+            });
+            html += "</div>";
+            resultado.innerHTML = html;
+        }
+
+        // Função para mover o jogador entre os times
+        function moverJogador(timeIndex, jogadorIndex) {
+            const timeDestino = prompt("Para qual time você deseja mover o jogador? (Digite o número do time)");
+
+            if (timeDestino === null || timeDestino === "") return;
+
+            const timeDestinoIndex = parseInt(timeDestino) - 1;
+
+            if (isNaN(timeDestinoIndex) || timeDestinoIndex < 0 || timeDestinoIndex >= times.length || timeDestinoIndex === timeIndex) {
+                mostrarFeedback("Seleção inválida de time.", "error");
+                return;
+            }
+
+            const jogador = times[timeIndex].splice(jogadorIndex, 1)[0];
+            times[timeDestinoIndex].push(jogador);
+
+            exibirResultado(window.times);
+        }
+
+        // Função para exportar os times para CSV
+        function exportarCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            window.times.forEach((time, index) => {
+                csvContent += `Time ${index + 1}\n`;
+                time.forEach(jogador => {
+                    csvContent += `${jogador.nome},${jogador.habilidade}\n`;
+                });
+                csvContent += "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "times.csv");
+            document.body.appendChild(link);
+            link.click();
+        }
+
+        // Função para mostrar feedback visual
+        function mostrarFeedback(mensagem, tipo) {
+            const feedback = document.getElementById("feedback");
+            feedback.textContent = mensagem;
+            feedback.className = `feedback ${tipo}`;
+            feedback.style.display = "block";
+            setTimeout(() => feedback.style.display = "none", 3000);
+        }
+
+        // Função para salvar jogadores no localStorage
+        function salvarJogadores() {
+            localStorage.setItem('jogadores', JSON.stringify(jogadores));
+        }
+
+        // Função para carregar jogadores do localStorage
+        function carregarJogadores() {
+            const dados = localStorage.getItem('jogadores');
+            if (dados) {
+                jogadores = JSON.parse(dados);
+                atualizarListaJogadores();
+            }
+        }
+    </script>
+</body>
+</html>

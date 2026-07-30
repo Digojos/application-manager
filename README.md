@@ -170,6 +170,10 @@ docker compose restart app
 | `/placar-volei/sessoes` | Gerenciamento de sessões (criar, abrir, excluir) | Público |
 | `/placar-volei/tv` | Lista de sessões em andamento para abrir na TV | Público |
 | `/placar-volei/view/[id]` | Visualização em tempo real da sessão (somente leitura) | Público |
+| `/placar-basquete` | Controle do placar de basquete (aceita `?sessionId=<id>`) | Público |
+| `/placar-basquete/sessoes` | Gerenciamento de sessões (criar, abrir, excluir) | Público |
+| `/placar-basquete/tv` | Lista de sessões em andamento para abrir na TV | Público |
+| `/placar-basquete/view/[id]` | Visualização em tempo real da sessão (somente leitura) | Público |
 | `/[...slug]` | Fallback para rotas não implementadas | Público |
 
 ### API
@@ -189,6 +193,13 @@ docker compose restart app
 | `PATCH` | `/api/scoreboard-sessions/[id]` | Aplica uma ação/mutação na sessão |
 | `DELETE` | `/api/scoreboard-sessions/[id]` | Remove uma sessão |
 | `GET` | `/api/scoreboard-sessions/[id]/stream` | SSE — atualizações em tempo real da sessão |
+| `GET` | `/api/basketball-sessions` | Lista todas as sessões do placar de basquete |
+| `POST` | `/api/basketball-sessions` | Cria uma sessão de basquete |
+| `GET` | `/api/basketball-sessions/active` | Lista sessões em andamento (sem vencedor) |
+| `GET` | `/api/basketball-sessions/[id]` | Retorna uma sessão pelo ID (com `serverNow`) |
+| `PATCH` | `/api/basketball-sessions/[id]` | Aplica uma ação na sessão |
+| `DELETE` | `/api/basketball-sessions/[id]` | Remove uma sessão |
+| `GET` | `/api/basketball-sessions/[id]/stream` | SSE — atualizações em tempo real da sessão |
 
 ## Placar de vôlei por sessão
 
@@ -239,6 +250,55 @@ As opções abaixo são salvas na sessão e aplicadas na view:
 | `DELETE` | `/api/scoreboard-sessions/[id]` | Exclui sessão | Público |
 | `GET` | `/api/scoreboard-sessions/[id]/stream` | Stream SSE com atualizações da sessão | Público |
 
+## Placar de basquete por sessão
+
+Mesmo modelo de sessão do placar de vôlei (controle + view + SSE), adaptado para basquete com cronômetro de jogo e de posse de bola.
+
+### Conceitos
+
+- **Controle**: rota interativa para operar o placar, o cronômetro e configurar a partida.
+- **View**: rota somente leitura para TV/telão, sem ações de edição — nunca envia dados, só recebe.
+- **Sessão**: unidade persistida no banco com estado do placar, cronômetros, histórico por período e configurações visuais.
+
+### Fluxo recomendado
+
+1. Criar sessão em `/placar-basquete/sessoes`.
+2. Abrir controle em `/placar-basquete?sessionId=<id>`.
+3. Compartilhar a view em `/placar-basquete/view/<id>` (link ou QR Code).
+
+### Cronômetros
+
+- **Relógio de jogo**: contagem regressiva por período, com iniciar/pausar, zerar e ajustes manuais (±1s/10s/1min) ou edição direta em mm:ss.
+- **Posse de 24s**: cronômetro independente com reset para 24s ou 14s; pausa junto com o relógio de jogo.
+- Todos os cronômetros sincronizam em tempo real entre controle e view via SSE, com correção automática de diferença de horário entre dispositivos.
+
+### Configurações da partida (padrão NBA, tudo editável no controle)
+
+- Total de períodos, minutos por período e minutos de prorrogação.
+- Faltas para o bônus, e se as faltas resetam a cada período.
+- Tempos técnicos por time (regulares e na prorrogação), e se resetam por partida, por tempo ou por período.
+- Duração da posse de 24s e do reset secundário (14s).
+- Automações opcionais: cesta reseta a posse de 24s, cesta inverte a posse de bola, falta pausa os cronômetros.
+- Desligar completamente o controle de faltas (`Usar faltas`), a posse de 24s ou a prorrogação, quando não forem necessários.
+
+### Configurações de exibição (definidas no controle)
+
+- Cores de fundo, da fonte e de destaque (bônus, posse) do card.
+- Tamanho da fonte do nome do time, do placar e do cronômetro.
+- Exibir/ocultar: nomes dos times, período, cronômetro de jogo, cronômetro de posse, faltas, tempos técnicos, seta de posse, resumo por período e décimos de segundo.
+
+### API REST
+
+| Método | Endpoint | Descrição | Acesso |
+|---|---|---|---|
+| `GET` | `/api/basketball-sessions` | Lista sessões de basquete | Público |
+| `POST` | `/api/basketball-sessions` | Cria nova sessão de basquete | Público |
+| `GET` | `/api/basketball-sessions/[id]` | Busca sessão por ID (inclui `serverNow` para calibrar o relógio) | Público |
+| `PATCH` | `/api/basketball-sessions/[id]` | Aplica ação no placar/cronômetro/config da sessão | Público |
+| `DELETE` | `/api/basketball-sessions/[id]` | Exclui sessão | Público |
+| `GET` | `/api/basketball-sessions/[id]/stream` | Stream SSE com atualizações da sessão | Público |
+| `GET` | `/api/basketball-sessions/active` | Lista sessões em andamento (sem vencedor) | Público |
+
 ## Estrutura do projeto
 
 ```
@@ -253,11 +313,19 @@ application-manager/
 │   │   ├── admin/miniapps/     # Endpoints CRUD admin
 │   │   ├── auth/[...nextauth]/ # Handler do Auth.js
 │   │   ├── miniapps/           # Endpoint público
-│   │   └── scoreboard-sessions/# Endpoints de sessão do placar + stream SSE
+│   │   ├── scoreboard-sessions/# Endpoints de sessão do placar de vôlei + stream SSE
+│   │   └── basketball-sessions/# Endpoints de sessão do placar de basquete + stream SSE
 │   ├── login/                  # Tela de login
 │   ├── placar-volei/           # Mini-app: placar de vôlei
 │   │   ├── page.tsx            # Tela de controle
 │   │   ├── sessoes/            # CRUD de sessões
+│   │   ├── tv/                 # Lista de sessões ativas para abrir na TV
+│   │   └── view/[id]/          # Tela de visualização (somente leitura)
+│   ├── placar-basquete/        # Mini-app: placar de basquete (cronômetro + posse de 24s)
+│   │   ├── page.tsx            # Tela de controle
+│   │   ├── use-basketball-clock.ts # Hooks de tique/offset de relógio (client)
+│   │   ├── sessoes/            # CRUD de sessões
+│   │   ├── tv/                 # Lista de sessões ativas para abrir na TV
 │   │   └── view/[id]/          # Tela de visualização (somente leitura)
 │   ├── [...slug]/              # Catch-all para rotas não implementadas
 │   ├── layout.tsx              # Layout raiz com header
@@ -265,9 +333,14 @@ application-manager/
 ├── lib/
 │   ├── miniapps.ts             # Camada de acesso a dados (MiniApp)
 │   ├── prisma.ts               # Singleton do Prisma Client
-│   ├── scoreboard.ts           # Estado/reducer/config do placar
-│   ├── scoreboard-sessions.ts  # CRUD/aplicação de ações da sessão
-│   ├── scoreboard-stream.ts    # Pub/sub em memória para SSE
+│   ├── scoreboard.ts           # Estado/reducer/config do placar de vôlei
+│   ├── scoreboard-sessions.ts  # CRUD/aplicação de ações da sessão de vôlei
+│   ├── scoreboard-stream.ts    # Wrapper de compatibilidade sobre lib/session-stream.ts
+│   ├── basketball.ts           # Estado/reducer/relógio/config do placar de basquete
+│   ├── basketball-sessions.ts  # CRUD/aplicação de ações da sessão de basquete
+│   ├── basketball-stream.ts    # Canal SSE do basquete (sobre lib/session-stream.ts)
+│   ├── session-stream.ts       # Fábrica de pub/sub em memória, compartilhada pelos dois placares
+│   ├── team-draw.ts            # Lógica pura do sorteio de times
 │   └── validations.ts          # Schemas Zod
 ├── prisma/
 │   ├── migrations/             # Histórico de migrations
@@ -312,6 +385,18 @@ application-manager/
 | title | VarChar(120) | Título da sessão |
 | controlToken | String | Token opcional para controle da sessão |
 | state | JSON | Estado completo do placar (times, sets, histórico e display) |
+| archivedAt | DateTime nullable | Data de arquivamento lógico |
+| createdAt | DateTime | Data de criação |
+| updatedAt | DateTime | Data de atualização |
+
+**BasketballSession** (`basketball_sessions`)
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| id | String (PK) | Identificador único da sessão |
+| title | VarChar(120) | Título da sessão |
+| controlToken | String | Token opcional para controle da sessão |
+| state | JSON | Estado completo do placar (times, faltas, tempos, cronômetros, histórico por período e display) |
 | archivedAt | DateTime nullable | Data de arquivamento lógico |
 | createdAt | DateTime | Data de criação |
 | updatedAt | DateTime | Data de atualização |

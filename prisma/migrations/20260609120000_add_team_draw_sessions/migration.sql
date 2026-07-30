@@ -1,0 +1,3 @@
+-- placeholder: original migration.sql for this already-applied migration was lost from disk.
+-- Recreated as a no-op so `prisma migrate deploy` can locate the file; the actual schema
+-- change (CREATE TABLE team_draw_sessions) is already present in the database.

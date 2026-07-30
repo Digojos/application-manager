@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const ISOLATED_ROUTE_PREFIXES = ["C"];
+const ISOLATED_ROUTE_PREFIXES = ["C", "/placar-basquete/view", "/placar-basquete/tv"];
 
 function isIsolatedRoute(pathname: string) {
   return ISOLATED_ROUTE_PREFIXES.some(
