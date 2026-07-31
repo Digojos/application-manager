@@ -979,6 +979,25 @@ function PlacarBasqueteContent() {
 
       {!isFullscreen && (
         <>
+        {/* Atalhos de teclado */}
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
+            <h2 className="text-lg font-bold text-gray-900">Atalhos de teclado</h2>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <p><b>Espaço</b> — liga/pausa</p>
+              <p><b>Q/W/E</b> — Time A +1/+2/+3</p>
+              <p><b>A/S/D</b> — Time B +1/+2/+3</p>
+              <p><b>Z/X</b> — −1 A/B</p>
+              <p><b>C/V</b> — falta A/B</p>
+              <p><b>1/2</b> — posse 24s/14s</p>
+              <p><b>B</b> — inverte posse</p>
+              <p><b>R</b> — zera cronômetro</p>
+              <p><b>N</b> — avança período</p>
+              <p><b>P</b> — reinicia partida</p>
+              <p><b>F</b> — fullscreen</p>
+              <p><b>U</b> — desfazer última ação</p>
+            </div>
+          </div>
+          
           {/* Configuração da partida */}
           <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
             <h2 className="text-lg font-bold text-gray-900">Configurações da partida</h2>
@@ -1252,24 +1271,7 @@ function PlacarBasqueteContent() {
             </div>
           </div>
 
-          {/* Atalhos de teclado */}
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
-            <h2 className="text-lg font-bold text-gray-900">Atalhos de teclado</h2>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <p><b>Espaço</b> — liga/pausa</p>
-              <p><b>Q/W/E</b> — Time A +1/+2/+3</p>
-              <p><b>A/S/D</b> — Time B +1/+2/+3</p>
-              <p><b>Z/X</b> — −1 A/B</p>
-              <p><b>C/V</b> — falta A/B</p>
-              <p><b>1/2</b> — posse 24s/14s</p>
-              <p><b>B</b> — inverte posse</p>
-              <p><b>R</b> — zera cronômetro</p>
-              <p><b>N</b> — avança período</p>
-              <p><b>P</b> — reinicia partida</p>
-              <p><b>F</b> — fullscreen</p>
-              <p><b>U</b> — desfazer última ação</p>
-            </div>
-          </div>
+          
 
           {/* Histórico por período */}
           {display.showPeriodSummary && history.length > 0 && (
