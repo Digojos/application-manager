@@ -805,14 +805,19 @@ export function basketballReducer(
       if (state.currentPeriod === 0 || state.history.length === 0) return state;
 
       const [entry, ...restHistory] = state.history;
+      const previousPeriod = state.currentPeriod - 1;
 
       return {
         ...state,
-        currentPeriod: state.currentPeriod - 1,
+        currentPeriod: previousPeriod,
         teamA: { ...state.teamA, fouls: entry.teamAFouls, timeoutsUsed: entry.teamATimeoutsUsed },
         teamB: { ...state.teamB, fouls: entry.teamBFouls, timeoutsUsed: entry.teamBTimeoutsUsed },
-        gameClock: { isRunning: false, remainingMs: 0, startedAt: null },
-        shotClock: materializeClock(state.shotClock, nowMs),
+        gameClock: {
+          isRunning: false,
+          remainingMs: getPeriodLengthMs(previousPeriod, state.config),
+          startedAt: null,
+        },
+        shotClock: { isRunning: false, remainingMs: state.config.shotClockSeconds * 1000, startedAt: null },
         history: restHistory,
       };
     }
