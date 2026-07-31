@@ -282,9 +282,9 @@ export function BasketballViewClient({ sessionId }: BasketballViewClientProps) {
             {display.showPeriod && (
               <div className="text-center">
                 <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Período</p>
-                <p className="mt-1 text-4xl font-bold" style={{ color: display.accentColor }}>
+                <p className="mt-1 font-bold" style={{ fontSize: clockFontSize, color: display.accentColor }}>
                   <span className="font-seven-segment">{state.currentPeriod + 1}</span>
-                  <span className="align-top text-xl">º</span>
+                  <span className="align-top" style={{ fontSize: "0.5em" }}>º</span>
                 </p>
               </div>
             )}
