@@ -1214,7 +1214,7 @@ function PlacarBasqueteContent() {
                 />
               </label>
               <label className="text-sm text-gray-600">
-                Tamanho do cronômetro ({clockSizeField.slider}px)
+                Tamanho dos cronômetros — jogo e posse ({clockSizeField.slider}px)
                 <input
                   type="range"
                   min={48}

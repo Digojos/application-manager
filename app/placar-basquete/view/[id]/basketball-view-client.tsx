@@ -305,8 +305,8 @@ export function BasketballViewClient({ sessionId }: BasketballViewClientProps) {
               <div className="text-center">
                 <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Posse</p>
                 <p
-                  className={`mt-1 text-5xl sm:text-6xl font-black tabular-nums leading-none font-seven-segment ${shotClockUrgent ? "animate-pulse text-red-400" : ""}`}
-                  style={shotClockUrgent ? undefined : { color: display.accentColor }}
+                  className={`mt-1 font-black tabular-nums leading-none font-seven-segment ${shotClockUrgent ? "animate-pulse text-red-400" : ""}`}
+                  style={shotClockUrgent ? { fontSize: clockFontSize } : { fontSize: clockFontSize, color: display.accentColor }}
                 >
                   {formatShotClock(shotMs, display.showTenths)}
                 </p>
