@@ -1291,8 +1291,12 @@ function PlacarBasqueteContent() {
                     {history.map((entry) => (
                       <tr key={entry.periodNumber} className="border-b border-gray-100 text-gray-700">
                         <td className="py-2 pr-4">{entry.isOvertime ? "Prorrogação" : `${entry.periodNumber}º Período`}</td>
-                        <td className="py-2 pr-4">{entry.teamAPeriodPoints} x {entry.teamBPeriodPoints}</td>
-                        <td className="py-2 pr-4">{entry.teamAName} {entry.teamAPoints} x {entry.teamBPoints} {entry.teamBName}</td>
+                        <td className="py-2 pr-4 font-black tabular-nums font-seven-segment" style={{ color: display.accentColor }}>
+                          {entry.teamAPeriodPoints} x {entry.teamBPeriodPoints}
+                        </td>
+                        <td className="py-2 pr-4 font-black tabular-nums font-seven-segment" style={{ color: display.accentColor }}>
+                          {entry.teamAPoints} x {entry.teamBPoints}
+                        </td>
                         <td className="py-2 pr-4">{entry.teamAFouls} x {entry.teamBFouls}</td>
                       </tr>
                     ))}
