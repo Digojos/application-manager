@@ -344,11 +344,11 @@ function PlacarBasqueteContent() {
 
   const applyAction = useCallback(
     (action: BasketballAction) => {
-      const nowIso = new Date().toISOString();
+      const nowIso = new Date(nowMs()).toISOString();
       dispatch({ kind: "apply", action, nowIso });
       persistAction(action);
     },
-    [persistAction],
+    [persistAction, nowMs],
   );
 
   const retryLastAction = useCallback(() => {
